@@ -14,7 +14,7 @@ type Period = 'day' | 'week' | 'month';
 
 export default function AnalyticsDashboard() {
   const [period, setPeriod] = useState<Period>('week');
-  const [startDate, setStartDate] = useState(subDays(new Date(), 7));
+  const [startDate, setStartDate] = useState<Date>();
 
   useEffect(() => {
     const now = new Date();
@@ -22,10 +22,13 @@ export default function AnalyticsDashboard() {
   }, [period]);
 
   const { data: documents, loading: docsLoading } = useCollection<DocumentType>('Documents');
-  const logConstraints = useMemo(() => [
-    where('downloadedAt', '>=', startDate),
-    orderBy('downloadedAt', 'desc')
-  ], [startDate]);
+  const logConstraints = useMemo(() => {
+    if (!startDate) return;
+    return [
+      where('downloadedAt', '>=', startDate),
+      orderBy('downloadedAt', 'desc')
+    ]
+  }, [startDate]);
   const { data: logs, loading: logsLoading } = useCollection<DownloadLog>('Logs', {
     constraints: logConstraints,
   });
@@ -36,7 +39,7 @@ export default function AnalyticsDashboard() {
     return docMap;
   }, [documents]);
 
-  const loading = docsLoading || logsLoading;
+  const loading = !startDate || docsLoading || logsLoading;
 
   const analyticsData = useMemo(() => {
     if (!logs || logs.length === 0 || documentsMap.size === 0) {
