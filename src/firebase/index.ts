@@ -1,5 +1,11 @@
 'use client';
-import { getApp, getApps, FirebaseApp, FirebaseOptions } from 'firebase/app';
+import {
+  getApp,
+  getApps,
+  initializeApp,
+  FirebaseApp,
+  FirebaseOptions,
+} from 'firebase/app';
 import { Auth, getAuth } from 'firebase/auth';
 import { Firestore, getFirestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
@@ -16,29 +22,22 @@ import {
 } from './provider';
 import { FirebaseClientProvider } from './client-provider';
 
-interface FirebaseInstances {
+export interface FirebaseInstances {
   app: FirebaseApp;
   auth: Auth;
   db: Firestore;
   storage: FirebaseStorage;
 }
 
-let firebaseInstances: FirebaseInstances | null = null;
-
 function initializeFirebase(
   config: FirebaseOptions = firebaseConfig
 ): FirebaseInstances {
-  if (firebaseInstances) {
-    return firebaseInstances;
-  }
-
   const app = getApps().length > 0 ? getApp() : initializeApp(config);
   const auth = getAuth(app);
   const db = getFirestore(app);
   const storage = getStorage(app);
 
-  firebaseInstances = { app, auth, db, storage };
-  return firebaseInstances;
+  return { app, auth, db, storage };
 }
 
 export {
