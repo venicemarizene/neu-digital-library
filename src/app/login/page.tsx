@@ -1,9 +1,9 @@
 'use client';
 
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { useAuth, useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Logo } from '@/components/icons/logo';
@@ -21,48 +21,63 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 
 export default function LoginPage() {
-  const { user, loading } = useUser();
+  const { user, loading: userLoading } = useUser();
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const [isSigningIn, setIsSigningIn] = useState(true); // Start as true to handle redirect result
 
   useEffect(() => {
-    if (!loading && user) {
+    if (!userLoading && user) {
       router.push('/');
     }
-  }, [user, loading, router]);
+  }, [user, userLoading, router]);
+
+  // Handle redirect result
+  useEffect(() => {
+    if (auth) {
+      getRedirectResult(auth)
+        .then((result) => {
+          // If result is null, it means no redirect operation was pending.
+          // If there is a result, the useUser hook will pick up the new user state.
+          setIsSigningIn(false);
+        })
+        .catch((error) => {
+          console.error('Error getting redirect result: ', error);
+          let description = 'An unexpected error occurred. Please try again.';
+          if (error.code === 'auth/account-exists-with-different-credential') {
+            description = 'An account already exists with the same email address but different sign-in credentials.';
+          } else if (error.message.includes("hd parameter")) {
+            description = "Access restricted. Please use an 'neu.edu.ph' email account.";
+          } else if (error.code === 'auth/unauthorized-domain') {
+            description = "This app's domain is not authorized for authentication. Please contact an administrator.";
+          }
+          
+          toast({
+            variant: "destructive",
+            title: "Authentication Failed",
+            description: description,
+          });
+          setIsSigningIn(false);
+        });
+    }
+  }, [auth, toast, router]);
 
   const handleSignIn = async () => {
+    setIsSigningIn(true);
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({
       hd: 'neu.edu.ph',
       prompt: 'select_account'
     });
-    try {
-      await signInWithPopup(auth, provider);
-      router.push('/');
-    } catch (error: any) {
-      console.error('Error signing in with Google: ', error);
-      let description = 'An unexpected error occurred. Please try again.';
-      if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
-        return; // User closed popup, do not show error.
-      } else if (error.code === 'auth/account-exists-with-different-credential') {
-        description = 'An account already exists with the same email address but different sign-in credentials.';
-      } else if (error.code === 'auth/popup-blocked') {
-        description = 'Sign-in popup was blocked by the browser. Please allow popups for this site.';
-      } else if (error.message.includes("hd parameter")) {
-        description = "Access restricted. Please use an 'neu.edu.ph' email account.";
-      }
-      
-      toast({
-        variant: "destructive",
-        title: "Authentication Failed",
-        description: description,
-      });
-    }
+    // signInWithRedirect unloads the page, so no need for try/catch here.
+    // Errors are handled by getRedirectResult.
+    await signInWithRedirect(auth, provider);
   };
+  
+  const loading = userLoading || isSigningIn;
 
-  if (loading || user) {
+  if (loading || (!userLoading && user)) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -81,7 +96,7 @@ export default function LoginPage() {
           <CardDescription>Sign in to access the CICS document vault.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={handleSignIn} className="w-full" variant="outline">
+          <Button onClick={handleSignIn} className="w-full" variant="outline" disabled={isSigningIn}>
             <GoogleIcon className="mr-2 h-5 w-5" />
             Sign in with Google
           </Button>
