@@ -70,9 +70,21 @@ export default function LoginPage() {
       hd: 'neu.edu.ph',
       prompt: 'select_account'
     });
-    // signInWithRedirect unloads the page, so no need for try/catch here.
-    // Errors are handled by getRedirectResult.
-    await signInWithRedirect(auth, provider);
+    try {
+        await signInWithRedirect(auth, provider);
+    } catch (error: any) {
+        console.error("Sign-in failed to initiate:", error);
+        let description = "Could not start the sign-in process. Please try again.";
+        if (error.code === 'auth/unauthorized-domain') {
+            description = "This application's domain is not authorized for Google Sign-In. An administrator needs to add this domain to the Firebase console's list of authorized domains.";
+        }
+        toast({
+            variant: 'destructive',
+            title: 'Authentication Error',
+            description: description,
+        });
+        setIsSigningIn(false);
+    }
   };
   
   const loading = userLoading || isSigningIn;
