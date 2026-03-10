@@ -40,7 +40,6 @@ export default function LoginPage() {
         .then((result) => {
           // If result is null, it means no redirect operation was pending.
           // If there is a result, the useUser hook will pick up the new user state.
-          setIsSigningIn(false);
         })
         .catch((error) => {
           console.error('Error getting redirect result: ', error);
@@ -58,10 +57,12 @@ export default function LoginPage() {
             title: "Authentication Failed",
             description: description,
           });
-          setIsSigningIn(false);
+        })
+        .finally(() => {
+            setIsSigningIn(false);
         });
     }
-  }, [auth, toast, router]);
+  }, [auth, toast]);
 
   const handleSignIn = async () => {
     setIsSigningIn(true);
