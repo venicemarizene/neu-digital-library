@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -28,8 +28,9 @@ export default function DocumentManager() {
   const db = useFirestore();
   const storage = useStorage();
   const { toast } = useToast();
+  const documentConstraints = useMemo(() => [orderBy('uploadedAt', 'desc')], []);
   const { data: documents, loading } = useCollection<DocumentType>('Documents', {
-    constraints: [orderBy('uploadedAt', 'desc')],
+    constraints: documentConstraints,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 

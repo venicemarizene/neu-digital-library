@@ -29,8 +29,9 @@ const getInitials = (name: string | null | undefined) => {
 export default function StudentTable() {
   const db = useFirestore();
   const { toast } = useToast();
+  const userConstraints = useMemo(() => [where('isAdmin', '==', false)], []);
   const { data: users, loading } = useCollection<AppUser>('Users', {
-      constraints: [where('isAdmin', '==', false)]
+      constraints: userConstraints
   });
   const [filter, setFilter] = useState('All Programs');
   

@@ -22,11 +22,12 @@ export default function AnalyticsDashboard() {
   }, [period]);
 
   const { data: documents, loading: docsLoading } = useCollection<DocumentType>('Documents');
+  const logConstraints = useMemo(() => [
+    where('downloadedAt', '>=', startDate),
+    orderBy('downloadedAt', 'desc')
+  ], [startDate]);
   const { data: logs, loading: logsLoading } = useCollection<DownloadLog>('Logs', {
-    constraints: [
-        where('downloadedAt', '>=', startDate),
-        orderBy('downloadedAt', 'desc')
-    ]
+    constraints: logConstraints,
   });
 
   const documentsMap = useMemo(() => {

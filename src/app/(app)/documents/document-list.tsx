@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, orderBy } from 'firebase/firestore';
 import { useUser, useFirestore, useCollection } from '@/firebase';
 import type { Document as DocumentType } from '@/lib/types';
 import { Input } from '@/components/ui/input';
@@ -14,8 +14,9 @@ export default function DocumentList() {
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
+  const documentConstraints = useMemo(() => [orderBy('uploadedAt', 'desc')], []);
   const { data: documents, loading } = useCollection<DocumentType>('Documents', {
-    constraints: [orderBy('uploadedAt', 'desc')],
+    constraints: documentConstraints,
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [downloading, setDownloading] = useState<string | null>(null);
