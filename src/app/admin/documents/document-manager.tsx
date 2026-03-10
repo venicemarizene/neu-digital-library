@@ -8,6 +8,7 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage
 import { useUser, useFirestore, useStorage, useCollection } from '@/firebase';
 import type { Document as DocumentType } from '@/lib/types';
 import { orderBy } from 'firebase/firestore';
+import { format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -162,7 +163,7 @@ export default function DocumentManager() {
                     <TableRow key={doc.id}>
                       <TableCell className="font-medium">{doc.filename}</TableCell>
                       <TableCell>{doc.category}</TableCell>
-                      <TableCell>{doc.uploadedAt?.toDate().toLocaleDateString()}</TableCell>
+                      <TableCell>{doc.uploadedAt ? format(doc.uploadedAt.toDate(), 'PP') : ''}</TableCell>
                       <TableCell className="text-right">
                         <AlertDialog>
                           <AlertDialogTrigger asChild>

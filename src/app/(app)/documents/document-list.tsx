@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Download, FileText, Loader2, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { format } from 'date-fns';
 
 export default function DocumentList() {
   const { user } = useUser();
@@ -114,7 +115,7 @@ export default function DocumentList() {
               </CardHeader>
               <CardContent className="flex-grow">
                 <p className="text-sm text-muted-foreground">
-                  {doc.uploadedAt && `Uploaded: ${new Date(doc.uploadedAt.seconds * 1000).toLocaleDateString()}`}
+                  {doc.uploadedAt && `Uploaded: ${format(new Date(doc.uploadedAt.seconds * 1000), 'PP')}`}
                 </p>
               </CardContent>
               <CardFooter>

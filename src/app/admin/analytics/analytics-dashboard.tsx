@@ -8,22 +8,26 @@ import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, FileText, Download } from 'lucide-react';
-import { subDays, startOfDay } from 'date-fns';
+import { subDays, startOfDay, format } from 'date-fns';
 
 type Period = 'day' | 'week' | 'month';
 
 export default function AnalyticsDashboard() {
   const [period, setPeriod] = useState<Period>('week');
-  const [startDate, setStartDate] = useState<Date>();
+  const [startDate, setStartDate] = useState<Date | undefined>();
 
   useEffect(() => {
     const now = new Date();
-    setStartDate(period === 'day' ? startOfDay(now) : subDays(now, period === 'week' ? 7 : 30));
+    if (period === 'day') {
+      setStartDate(startOfDay(now));
+    } else {
+      setStartDate(subDays(now, period === 'week' ? 7 : 30));
+    }
   }, [period]);
 
   const { data: documents, loading: docsLoading } = useCollection<DocumentType>('Documents');
   const logConstraints = useMemo(() => {
-    if (!startDate) return;
+    if (!startDate) return undefined; // Return undefined to stop the query
     return [
       where('downloadedAt', '>=', startDate),
       orderBy('downloadedAt', 'desc')
@@ -31,6 +35,7 @@ export default function AnalyticsDashboard() {
   }, [startDate]);
   const { data: logs, loading: logsLoading } = useCollection<DownloadLog>('Logs', {
     constraints: logConstraints,
+    listen: true
   });
 
   const documentsMap = useMemo(() => {
@@ -58,7 +63,7 @@ export default function AnalyticsDashboard() {
         downloadCounts[doc.id].downloads += 1;
       }
       
-      const dateString = new Date(log.downloadedAt.seconds * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const dateString = format(new Date(log.downloadedAt.seconds * 1000), 'yyyy-MM-dd');
       if(!activityCounts[dateString]) {
           activityCounts[dateString] = { date: dateString, downloads: 0 };
       }
@@ -69,7 +74,7 @@ export default function AnalyticsDashboard() {
       .sort((a, b) => b.downloads - a.downloads)
       .slice(0, 5);
       
-    const activity = Object.values(activityCounts).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).reverse();
+    const activity = Object.values(activityCounts).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     return { totalDownloads: logs.length, mostDownloaded, activity };
   }, [logs, documentsMap]);
@@ -151,7 +156,7 @@ export default function AnalyticsDashboard() {
               <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
                 <ResponsiveContainer width="100%" height={250}>
                     <BarChart data={analyticsData.activity}>
-                    <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} />
+                    <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} tickFormatter={(value) => format(new Date(value), 'MMM d')} />
                     <YAxis hide />
                     <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line" />} />
                     <Bar dataKey="downloads" fill="var(--color-downloads)" radius={4} />
