@@ -156,7 +156,7 @@ export default function AnalyticsDashboard() {
               <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
                 <ResponsiveContainer width="100%" height={250}>
                     <BarChart data={analyticsData.activity}>
-                    <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} tickFormatter={(value) => format(new Date(value), 'MMM d')} />
+                    <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} tickFormatter={(value) => format(new Date(value), 'MM/dd')} />
                     <YAxis hide />
                     <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line" />} />
                     <Bar dataKey="downloads" fill="var(--color-downloads)" radius={4} />

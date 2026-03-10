@@ -163,7 +163,7 @@ export default function DocumentManager() {
                     <TableRow key={doc.id}>
                       <TableCell className="font-medium">{doc.filename}</TableCell>
                       <TableCell>{doc.category}</TableCell>
-                      <TableCell>{doc.uploadedAt ? format(doc.uploadedAt.toDate(), 'PP') : ''}</TableCell>
+                      <TableCell>{doc.uploadedAt ? format(doc.uploadedAt.toDate(), 'yyyy-MM-dd') : ''}</TableCell>
                       <TableCell className="text-right">
                         <AlertDialog>
                           <AlertDialogTrigger asChild>

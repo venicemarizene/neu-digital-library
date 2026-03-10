@@ -115,7 +115,7 @@ export default function DocumentList() {
               </CardHeader>
               <CardContent className="flex-grow">
                 <p className="text-sm text-muted-foreground">
-                  {doc.uploadedAt && `Uploaded: ${format(new Date(doc.uploadedAt.seconds * 1000), 'PP')}`}
+                  {doc.uploadedAt && `Uploaded: ${format(new Date(doc.uploadedAt.seconds * 1000), 'yyyy-MM-dd')}`}
                 </p>
               </CardContent>
               <CardFooter>
