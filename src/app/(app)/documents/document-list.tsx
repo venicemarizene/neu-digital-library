@@ -45,8 +45,8 @@ export default function DocumentList() {
       ];
   }, [appUser?.program]);
 
-  const { data: allCicsDocs, loading: loadingAll } = useCollection<DocumentType>('Documents', { constraints: allCicsConstraints, listen: true });
-  const { data: programDocs, loading: loadingProgram } = useCollection<DocumentType>('Documents', { constraints: programSpecificConstraints, listen: true, skip: !appUser?.program });
+  const { data: allCicsDocs, loading: loadingAll, error: errorAll } = useCollection<DocumentType>('Documents', { constraints: allCicsConstraints, listen: true });
+  const { data: programDocs, loading: loadingProgram, error: errorProgram } = useCollection<DocumentType>('Documents', { constraints: programSpecificConstraints, listen: true, skip: !programSpecificConstraints });
 
   const loading = loadingAll || loadingProgram;
 
@@ -88,11 +88,7 @@ export default function DocumentList() {
             doc.description?.toLowerCase().includes(searchTerm.toLowerCase())
         );
     }
-    
-    return {
-        general: docs.filter(d => d.visibility === 'ALL_CICS'),
-        programSpecific: docs.filter(d => d.visibility === 'PROGRAM_SPECIFIC'),
-    }
+    return docs;
   }, [allDocuments, searchTerm, activeCategory]);
 
   const handleView = (doc: DocumentType) => {
@@ -249,7 +245,7 @@ export default function DocumentList() {
         </div>
       </div>
 
-      {filteredDocuments.general.length === 0 && filteredDocuments.programSpecific.length === 0 ? (
+      {filteredDocuments.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-card py-24 text-center">
           <FileText className="h-12 w-12 text-muted-foreground" />
           <h3 className="mt-4 text-lg font-semibold">No Documents Found</h3>
@@ -258,20 +254,7 @@ export default function DocumentList() {
           </p>
         </div>
       ) : (
-        <div className="space-y-8">
-            {filteredDocuments.general.length > 0 && (
-                <section className="space-y-4">
-                    <h2 className="text-2xl font-bold tracking-tight font-headline">General CICS Documents</h2>
-                    {renderDocGrid(filteredDocuments.general)}
-                </section>
-            )}
-            {filteredDocuments.programSpecific.length > 0 && (
-                 <section className="space-y-4">
-                    <h2 className="text-2xl font-bold tracking-tight font-headline">Your Program ({appUser?.program?.match(/\(([^)]+)\)/)?.[1] || 'Specific'})</h2>
-                    {renderDocGrid(filteredDocuments.programSpecific)}
-                </section>
-            )}
-        </div>
+        renderDocGrid(filteredDocuments)
       )}
     </div>
   );
