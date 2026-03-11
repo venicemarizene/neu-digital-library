@@ -16,10 +16,12 @@ const categories = ['All', 'Curriculum', 'Manual', 'Forms', 'Guide', 'Academic']
 
 const mockDocuments = [
   { id: 'mock-handbook', filename: 'CICS Student Handbook.pdf', category: 'Manual', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-01-15T09:00:00')), uploaderId: 'system-seed', description: 'The rules and regulations for CICS students for the current academic year.' },
-  { id: 'mock-bsit', filename: 'BSIT Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:00:00')), uploaderId: 'system-seed', description: 'The official program sequence for BSIT.' },
-  { id: 'mock-bscs', filename: 'BSCS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:05:00')), uploaderId: 'system-seed', description: 'The official program sequence for BSCS.' },
-  { id: 'mock-blis', filename: 'BLIS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:10:00')), uploaderId: 'system-seed', description: 'The official program sequence for BLIS.' },
-  { id: 'mock-act', filename: 'ACT Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:15:00')), uploaderId: 'system-seed', description: 'The official program sequence for ACT.' },
+  { id: 'mock-bslis', filename: 'BSLIS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:00:00')), uploaderId: 'system-seed', description: 'The official program sequence for BSLIS.' },
+  { id: 'mock-bsemc-dat', filename: 'BSEMC-DAT Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:05:00')), uploaderId: 'system-seed', description: 'The official program sequence for BSEMC-DAT.' },
+  { id: 'mock-bscs', filename: 'BSCS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:10:00')), uploaderId: 'system-seed', description: 'The official program sequence for BSCS.' },
+  { id: 'mock-bsemc-gd', filename: 'BSEMC-GD Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:15:00')), uploaderId: 'system-seed', description: 'The official program sequence for BSEMC-GD.' },
+  { id: 'mock-bsit', filename: 'BSIT Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:20:00')), uploaderId: 'system-seed', description: 'The official program sequence for BSIT.' },
+  { id: 'mock-bsis', filename: 'BSIS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:25:00')), uploaderId: 'system-seed', description: 'The official program sequence for BSIS.' },
   { id: 'mock-faq', filename: 'Internship Requirements FAQ.pdf', category: 'Guide', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-03-10T14:00:00')), uploaderId: 'system-seed', description: 'Frequently asked questions about the CICS internship programs.' },
   { id: 'mock-clearance', filename: 'University Clearance Form.pdf', category: 'Forms', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-04-05T11:30:00')), uploaderId: 'system-seed', description: 'Official college clearance form for graduating students.' },
 ];
@@ -40,7 +42,7 @@ export default function DocumentList() {
     const dbDocs = documents || [];
     const existingFilenames = new Set(dbDocs.map(d => d.filename));
     const documentsToAdd = mockDocuments.filter(md => !existingFilenames.has(md.filename));
-    return [...documentsToAdd, ...dbDocs];
+    return [...documentsToAdd, ...dbDocs].sort((a, b) => (b.uploadedAt as any) - (a.uploadedAt as any));
   }, [documents]);
 
   const filteredDocuments = useMemo(() => {
@@ -51,7 +53,7 @@ export default function DocumentList() {
     if (!searchTerm) return docs;
     return docs.filter(doc =>
       (doc as any).filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (doc as any).category.toLowerCase().includes(searchTerm.toLowerCase())
+      (doc as any).description.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [allDocuments, searchTerm, activeCategory]);
 

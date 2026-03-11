@@ -14,10 +14,12 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
 const programs = [
-  'Bachelor of Science in Information Technology (BSIT)',
+  'Bachelor of Library and Information Science (BSLIS)',
+  'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Digital Animation Technology (BSEMC-DAT)',
   'Bachelor of Science in Computer Science (BSCS)',
-  'Bachelor of Library and Information Science (BLIS)',
-  'Associate in Computer Technology (ACT)',
+  'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Game Development (BSEMC-GD)',
+  'Bachelor of Science in Information Technology (BSIT)',
+  'Bachelor of Science in Information System (BSIS)',
 ];
 
 export default function OnboardingPage() {
@@ -61,7 +63,7 @@ export default function OnboardingPage() {
       onboardingComplete: true, // Explicitly set onboarding as complete
     };
     
-    setDoc(userDocRef, newUserData)
+    setDoc(userDocRef, newUserData, { merge: true })
       .then(() => {
         console.log("Onboarding profile saved successfully. Redirecting...");
         toast({
@@ -98,10 +100,18 @@ export default function OnboardingPage() {
       </div>
     );
   }
+  
+  if (isProfileComplete) {
+      return (
+        <div className="flex h-screen w-full items-center justify-center bg-background">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+        );
+  }
 
   return (
     <main className="flex min-h-screen w-full items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md shadow-xl">
+      <Card className="w-full max-w-lg shadow-xl">
         <CardHeader>
           <CardTitle className="font-headline text-2xl">Welcome to CICS!</CardTitle>
           <CardDescription>To personalize your experience, please select your undergraduate program.</CardDescription>
