@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import type { AppUser } from '@/lib/types';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Form,
   FormControl,
@@ -49,7 +50,7 @@ export function ProfileForm({ user }: { user: AppUser }) {
             <FormItem>
               <FormLabel>Program</FormLabel>
                 <FormControl>
-                    <Input {...field} disabled />
+                    <Textarea {...field} disabled readOnly className="resize-none" />
                 </FormControl>
             </FormItem>
           )}

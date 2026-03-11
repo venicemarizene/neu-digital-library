@@ -40,7 +40,7 @@ export function AppSidebar() {
             <p className="text-lg font-medium text-sidebar-foreground/70">Student</p>
         </div>
       </SidebarHeader>
-      <SidebarContent className="pt-4">
+      <SidebarContent className="pt-8">
         <SidebarMenu className="px-4">
           <SidebarMenuItem>
             <SidebarMenuButton
@@ -71,7 +71,7 @@ export function AppSidebar() {
               <AvatarFallback>{getInitials(appUser?.displayName)}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col min-w-0">
-                <span className="text-sm font-semibold text-sidebar-foreground break-words leading-tight">{appUser?.displayName}</span>
+                <span className="text-xs font-semibold text-sidebar-foreground break-words leading-tight">{appUser?.displayName}</span>
                 <span className="text-xs text-sidebar-foreground/80 break-all">{appUser?.email}</span>
             </div>
         </div>
