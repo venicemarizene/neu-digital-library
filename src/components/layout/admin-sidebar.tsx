@@ -81,7 +81,7 @@ export function AdminSidebar() {
               <AvatarImage src={appUser?.photoURL ?? undefined} alt={appUser?.displayName ?? 'Admin'} />
               <AvatarFallback>{getInitials(appUser?.displayName)}</AvatarFallback>
             </Avatar>
-            <div className="flex flex-col text-sm overflow-hidden">
+            <div className="flex flex-col text-xs overflow-hidden">
                 <span className="font-semibold text-foreground truncate">{appUser?.displayName}</span>
                 <span className="text-muted-foreground truncate">{appUser?.email}</span>
             </div>
