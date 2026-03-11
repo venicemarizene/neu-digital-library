@@ -13,6 +13,8 @@ import { useToast } from '@/hooks/use-toast';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { Loader2 } from 'lucide-react';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const programs = [
   'Bachelor of Science in Information Technology (BSIT)',
@@ -37,27 +39,34 @@ export function ProfileForm({ user }: { user: AppUser }) {
     },
   });
 
-  async function onSubmit(values: z.infer<typeof profileSchema>) {
+  function onSubmit(values: z.infer<typeof profileSchema>) {
     setIsSubmitting(true);
-    try {
-      const userDocRef = doc(db, 'Users', user.uid);
-      await updateDoc(userDocRef, {
-        program: values.program,
+    const userDocRef = doc(db, 'Users', user.uid);
+    const updatedData = { program: values.program };
+
+    updateDoc(userDocRef, updatedData)
+      .then(() => {
+        toast({
+          title: 'Profile Updated',
+          description: 'Your program has been successfully updated.',
+        });
+      })
+      .catch((error) => {
+        const permissionError = new FirestorePermissionError({
+          path: userDocRef.path,
+          operation: 'update',
+          requestResourceData: updatedData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+          variant: 'destructive',
+          title: 'Update Failed',
+          description: 'Could not update your profile. Please try again.',
+        });
+      })
+      .finally(() => {
+        setIsSubmitting(false);
       });
-      toast({
-        title: 'Profile Updated',
-        description: 'Your program has been successfully updated.',
-      });
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Update Failed',
-        description: 'Could not update your profile. Please try again.',
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
   }
 
   return (
