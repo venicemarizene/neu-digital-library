@@ -34,11 +34,14 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader>
-        <Logo brand="CICS" name="DocHub" isDark />
+      <SidebarHeader className="pt-6">
+        <div className="flex flex-col gap-1 pl-2">
+            <Logo brand="CICS" name="DocHub" isDark showIcon={false} />
+            <p className="text-xs font-medium text-sidebar-foreground/70">Student</p>
+        </div>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarMenu>
+        <SidebarMenu className="px-4">
           <SidebarMenuItem>
             <SidebarMenuButton
               isActive={pathname.startsWith('/documents')}
