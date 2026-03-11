@@ -60,10 +60,11 @@ export const useUser = (): UserData => {
               ...docSnap.data(),
             } as AppUser;
             setAppUser(userData);
-            setIsProfileComplete(!!userData.program);
+            setIsProfileComplete(userData.onboardingComplete || false);
             setIsAdmin(userData.isAdmin || false);
             setIsBlocked(userData.isBlocked || false);
           } else {
+            // This is a new user who hasn't completed onboarding.
             setAppUser(null);
             setIsProfileComplete(false);
             setIsAdmin(false);

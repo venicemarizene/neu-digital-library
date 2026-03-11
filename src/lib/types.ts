@@ -8,6 +8,7 @@ export interface AppUser {
   program: string;
   isAdmin: boolean;
   isBlocked: boolean;
+  onboardingComplete: boolean;
 }
 
 export interface Document {

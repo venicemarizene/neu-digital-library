@@ -32,6 +32,7 @@ export default function OnboardingPage() {
     // If the user hook is done loading and shows the profile is complete,
     // they shouldn't be on this page. Redirect them to the main app.
     if (!loading && isProfileComplete) {
+      console.log("Onboarding complete, redirecting from useEffect...");
       router.push('/documents');
     }
   }, [loading, isProfileComplete, router]);
@@ -57,15 +58,18 @@ export default function OnboardingPage() {
       program: program,
       isAdmin: false,
       isBlocked: false,
+      onboardingComplete: true, // Explicitly set onboarding as complete
     };
     
     setDoc(userDocRef, newUserData)
       .then(() => {
+        console.log("Onboarding profile saved successfully. Redirecting...");
         toast({
           title: "Profile Saved!",
           description: "Redirecting to the document library...",
         });
-        // The redirection is handled by the useEffect hook watching for isProfileComplete to become true.
+        // Explicitly redirect after saving, no need to wait for state propagation
+        router.push('/documents');
       })
       .catch((error) => {
         console.error('Error during onboarding:', error);
@@ -82,15 +86,12 @@ export default function OnboardingPage() {
           title: 'Onboarding Failed', 
           description: 'Could not save your profile. Please try again.' 
         });
-      })
-      .finally(() => {
         setIsSubmitting(false);
       });
   };
 
-  // Show a loader while the user status is loading, or if the profile is complete
-  // and we are waiting for the redirect to happen.
-  if (loading || (!loading && isProfileComplete)) {
+  // Show a loader while the user status is loading.
+  if (loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
