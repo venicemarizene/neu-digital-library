@@ -12,6 +12,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
+const categories = ['All', 'Curriculum', 'Manual', 'Forms', 'Guide', 'Academic'];
+
 export default function DocumentList() {
   const { user, isBlocked } = useUser();
   const db = useFirestore();
@@ -21,16 +23,21 @@ export default function DocumentList() {
     constraints: documentConstraints,
   });
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeCategory, setActiveCategory] = useState('All');
   const [downloading, setDownloading] = useState<string | null>(null);
 
   const filteredDocuments = useMemo(() => {
     if (!documents) return [];
-    if (!searchTerm) return documents;
-    return documents.filter(doc =>
+    let docs = documents;
+    if (activeCategory !== 'All') {
+        docs = docs.filter(doc => doc.category.toLowerCase() === activeCategory.toLowerCase());
+    }
+    if (!searchTerm) return docs;
+    return docs.filter(doc =>
       doc.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doc.category.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [documents, searchTerm]);
+  }, [documents, searchTerm, activeCategory]);
 
   const handleDownload = async (doc: DocumentType) => {
     if (!user) {
@@ -67,27 +74,34 @@ export default function DocumentList() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-10 w-full" />
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {[...Array(8)].map((_, i) => (
-            <Card key={i}>
-              <CardHeader className="flex-row items-start gap-4">
-                <Skeleton className="h-10 w-10 rounded-md" />
-                <div className="space-y-2 flex-1">
-                  <Skeleton className="h-5 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
+        <div className="space-y-6">
+            <div className="flex items-center justify-between gap-4">
+                <Skeleton className="h-10 flex-1 max-w-sm" />
+                <div className="flex gap-2">
+                    <Skeleton className="h-10 w-20" />
+                    <Skeleton className="h-10 w-20" />
+                    <Skeleton className="h-10 w-20" />
                 </div>
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-4 w-full" />
-              </CardContent>
-              <CardFooter>
-                <Skeleton className="h-10 w-full" />
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {[...Array(8)].map((_, i) => (
+                <Card key={i}>
+                <CardHeader className="flex-row items-start gap-4">
+                    <Skeleton className="h-10 w-10 rounded-md" />
+                    <div className="space-y-2 flex-1">
+                    <Skeleton className="h-5 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <Skeleton className="h-4 w-full" />
+                </CardContent>
+                <CardFooter>
+                    <Skeleton className="h-10 w-full" />
+                </CardFooter>
+                </Card>
+            ))}
+            </div>
       </div>
     );
   }
@@ -103,34 +117,45 @@ export default function DocumentList() {
             </AlertDescription>
         </Alert>
       )}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-        <Input
-          type="search"
-          placeholder="Search by filename or category..."
-          className="w-full pl-10"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          disabled={isBlocked}
-        />
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="relative w-full sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input
+            type="search"
+            placeholder="Search by file, description..."
+            className="w-full pl-10"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            disabled={isBlocked}
+            />
+        </div>
+        <div className="flex gap-2 flex-wrap">
+            {categories.map(cat => (
+                <Button key={cat} variant={activeCategory === cat ? 'default' : 'outline'} onClick={() => setActiveCategory(cat)}>
+                    {cat}
+                </Button>
+            ))}
+        </div>
       </div>
 
       {filteredDocuments.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredDocuments.map((doc) => (
-            <Card key={doc.id} className="flex flex-col">
+            <Card key={doc.id} className="flex flex-col transition-all hover:shadow-lg">
               <CardHeader>
                 <div className="flex items-start gap-4">
-                  <FileText className="h-10 w-10 flex-shrink-0 text-primary" />
+                  <div className="bg-primary/10 p-2 rounded-md">
+                    <FileText className="h-6 w-6 flex-shrink-0 text-primary" />
+                  </div>
                   <div>
-                    <CardTitle className="line-clamp-2 text-lg font-headline">{doc.filename}</CardTitle>
+                    <CardTitle className="line-clamp-2 text-base font-headline">{doc.filename}</CardTitle>
                     <CardDescription>{doc.category}</CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="flex-grow">
-                <p className="text-sm text-muted-foreground">
-                  {doc.uploadedAt && `Uploaded: ${format(new Date(doc.uploadedAt.seconds * 1000), 'yyyy-MM-dd')}`}
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {doc.uploadedAt && `Uploaded on ${format(new Date(doc.uploadedAt.seconds * 1000), 'MMM d, yyyy')}`}
                 </p>
               </CardContent>
               <CardFooter>
@@ -147,11 +172,11 @@ export default function DocumentList() {
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/50 py-24 text-center">
+        <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-card py-24 text-center">
           <FileText className="h-12 w-12 text-muted-foreground" />
           <h3 className="mt-4 text-lg font-semibold">No Documents Found</h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            {searchTerm ? 'Try a different search term.' : 'There are no documents in the library yet.'}
+            {searchTerm || activeCategory !== 'All' ? 'Try adjusting your search or filters.' : 'There are no documents in the library yet.'}
           </p>
         </div>
       )}

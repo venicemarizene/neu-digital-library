@@ -36,7 +36,7 @@ export function AdminSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className='flex-row items-center justify-between'>
-        <Logo />
+        <Logo brand="CICS" name="Vault" isDark />
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.push('/documents')}>
             <ArrowLeftRight className="h-4 w-4" />
         </Button>
@@ -50,7 +50,7 @@ export function AdminSidebar() {
               tooltip="Analytics"
             >
               <BarChart3 />
-              <span>Analytics</span>
+              <span>Dashboard</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>

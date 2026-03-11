@@ -6,7 +6,8 @@ import { useUser, useFirestore } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { personalizedDocumentRecommendations } from '@/ai/flows/personalized-document-recommendations';
@@ -84,23 +85,21 @@ export default function OnboardingPage() {
 
   return (
     <main className="flex min-h-screen w-full items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-lg">
+      <Card className="w-full max-w-md shadow-xl">
         <CardHeader>
-          <CardTitle>Welcome to CICS VaultConnect!</CardTitle>
-          <CardDescription>Let's set up your profile. Please select your undergraduate program to get started.</CardDescription>
+          <CardTitle className="font-headline text-2xl">Welcome to CICS!</CardTitle>
+          <CardDescription>To personalize your experience, please select your undergraduate program.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <Select value={program} onValueChange={setProgram} disabled={isSubmitting}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select your program..." />
-              </SelectTrigger>
-              <SelectContent>
+          <div className="space-y-6">
+            <RadioGroup value={program} onValueChange={setProgram} className="space-y-2">
                 {programs.map((p) => (
-                  <SelectItem key={p} value={p}>{p}</SelectItem>
+                  <div key={p} className="flex items-center space-x-2 rounded-md border border-border p-4 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:shadow-md">
+                    <RadioGroupItem value={p} id={p} />
+                    <Label htmlFor={p} className="flex-1 cursor-pointer text-sm">{p}</Label>
+                  </div>
                 ))}
-              </SelectContent>
-            </Select>
+            </RadioGroup>
             <Button onClick={handleSubmit} disabled={isSubmitting || !program} className="w-full">
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {isSubmitting ? 'Saving...' : 'Complete Profile'}

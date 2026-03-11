@@ -6,8 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Logo } from '@/components/icons/logo';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -102,21 +101,31 @@ export default function LoginPage() {
 
   return (
     <main className="flex min-h-screen w-full items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex justify-center">
-            <Logo />
-          </div>
-          <CardTitle>Welcome</CardTitle>
-          <CardDescription>Sign in to access the CICS document vault.</CardDescription>
+      <Card className="w-full max-w-sm shadow-xl">
+        <CardHeader className="text-center items-center">
+            <div className="rounded-full bg-primary/10 p-3">
+                <ShieldCheck className="h-10 w-10 text-primary" />
+            </div>
+          <CardTitle className="font-headline text-2xl">CICS Document Hub</CardTitle>
+          <CardDescription>Institutional login required</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Button onClick={handleSignIn} className="w-full" variant="outline" disabled={loading}>
+        <CardContent className="flex flex-col gap-4">
+           <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">
+                    Sign in with your institutional account
+                    </span>
+                </div>
+            </div>
+          <Button onClick={handleSignIn} className="w-full" disabled={loading}>
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2 h-5 w-5" />}
             {loading ? "Signing in..." : "Sign in with Google"}
           </Button>
-          <p className="mt-4 text-center text-xs text-muted-foreground">
-            Use your @neu.edu.ph account to continue.
+          <p className="mt-2 text-center text-xs text-muted-foreground">
+            Only @neu.edu.ph accounts are allowed to access this system.
           </p>
         </CardContent>
       </Card>
