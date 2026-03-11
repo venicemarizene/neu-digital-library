@@ -36,7 +36,7 @@ export default function OnboardingPage() {
     );
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!user) {
       toast({ variant: 'destructive', title: 'Error', description: 'You are not logged in.' });
       router.push('/login');
@@ -59,11 +59,11 @@ export default function OnboardingPage() {
       isBlocked: false,
     };
     
-    setDoc(userDocRef, newUserData)
-      .then(() => {
+    try {
+        await setDoc(userDocRef, newUserData);
+        // On success, redirect immediately.
         router.push('/documents');
-      })
-      .catch((error) => {
+    } catch (error) {
         console.error('Error during onboarding:', error);
         
         const permissionError = new FirestorePermissionError({
@@ -79,7 +79,7 @@ export default function OnboardingPage() {
           description: 'Could not save your profile. Please try again.' 
         });
         setIsSubmitting(false);
-      });
+    }
   };
 
   return (

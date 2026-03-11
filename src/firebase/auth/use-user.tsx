@@ -51,24 +51,35 @@ export const useUser = (): UserData => {
   useEffect(() => {
     if (user) {
       const userDocRef = doc(db, 'Users', user.uid);
-      const unsubscribeFirestore = onSnapshot(userDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-          const userData = {
-            uid: docSnap.id,
-            ...docSnap.data(),
-          } as AppUser;
-          setAppUser(userData);
-          setIsProfileComplete(!!userData.program);
-          setIsAdmin(userData.isAdmin || false);
-          setIsBlocked(userData.isBlocked || false);
-        } else {
+      const unsubscribeFirestore = onSnapshot(
+        userDocRef,
+        (docSnap) => {
+          if (docSnap.exists()) {
+            const userData = {
+              uid: docSnap.id,
+              ...docSnap.data(),
+            } as AppUser;
+            setAppUser(userData);
+            setIsProfileComplete(!!userData.program);
+            setIsAdmin(userData.isAdmin || false);
+            setIsBlocked(userData.isBlocked || false);
+          } else {
+            setAppUser(null);
+            setIsProfileComplete(false);
+            setIsAdmin(false);
+            setIsBlocked(false);
+          }
+          setLoading(false);
+        },
+        (error) => {
+          console.error('Error listening to user document:', error);
           setAppUser(null);
           setIsProfileComplete(false);
           setIsAdmin(false);
           setIsBlocked(false);
+          setLoading(false);
         }
-        setLoading(false);
-      });
+      );
       return () => unsubscribeFirestore();
     }
   }, [user, db]);
