@@ -38,7 +38,7 @@ export default function DocumentList() {
   ], []);
 
   const programSpecificConstraints = useMemo(() => {
-      if (!appUser?.program) return [];
+      if (!appUser?.program) return undefined;
       return [
           where('visibility', '==', 'PROGRAM_SPECIFIC'),
           where('targetProgram', '==', appUser.program),
