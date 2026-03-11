@@ -23,7 +23,6 @@ export default function ProfileClient() {
                 <Skeleton className="h-10 w-full" />
             </div>
             <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-32" />
           </div>
         </CardContent>
       </Card>
@@ -54,7 +53,7 @@ export default function ProfileClient() {
     <Card className="max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle>Profile Details</CardTitle>
-        <CardDescription>Manage your personal and academic information.</CardDescription>
+        <CardDescription>View your profile information.</CardDescription>
       </CardHeader>
       <CardContent>
         <ProfileForm user={appUser} />
