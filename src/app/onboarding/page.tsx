@@ -36,7 +36,7 @@ export default function OnboardingPage() {
     );
   }
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!user) {
       toast({ variant: 'destructive', title: 'Error', description: 'You are not logged in.' });
       router.push('/login');
@@ -59,11 +59,16 @@ export default function OnboardingPage() {
       isBlocked: false,
     };
     
-    try {
-        await setDoc(userDocRef, newUserData);
-        // On success, redirect immediately.
-        router.push('/documents');
-    } catch (error) {
+    setDoc(userDocRef, newUserData)
+      .then(() => {
+        toast({
+          title: "Profile Saved!",
+          description: "Redirecting to the document library...",
+        });
+        // The redirection is now handled automatically by the useUser hook
+        // and the logic in src/app/page.tsx. No need to call router.push here.
+      })
+      .catch((error) => {
         console.error('Error during onboarding:', error);
         
         const permissionError = new FirestorePermissionError({
@@ -79,7 +84,7 @@ export default function OnboardingPage() {
           description: 'Could not save your profile. Please try again.' 
         });
         setIsSubmitting(false);
-    }
+    });
   };
 
   return (
