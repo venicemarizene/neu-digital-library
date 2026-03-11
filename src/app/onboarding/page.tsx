@@ -59,8 +59,8 @@ export default function OnboardingPage() {
         isBlocked: false,
       });
 
-      // Redirect immediately to let the main page router handle navigation
-      router.push('/');
+      // Redirect immediately to the document library
+      router.push('/documents');
 
     } catch (error) {
       console.error('Error during onboarding:', error);

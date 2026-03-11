@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { collection, addDoc, serverTimestamp, orderBy } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, orderBy, Timestamp } from 'firebase/firestore';
 import { useUser, useFirestore, useCollection } from '@/firebase';
 import type { Document as DocumentType } from '@/lib/types';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,16 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const categories = ['All', 'Curriculum', 'Manual', 'Forms', 'Guide', 'Academic'];
 
+const mockDocuments: DocumentType[] = [
+  { id: 'mock-handbook', filename: 'CICS Student Handbook.pdf', category: 'Manual', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-01-15T09:00:00')), uploaderId: 'system-seed' },
+  { id: 'mock-bsit', filename: 'BSIT Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:00:00')), uploaderId: 'system-seed' },
+  { id: 'mock-bscs', filename: 'BSCS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:05:00')), uploaderId: 'system-seed' },
+  { id: 'mock-blis', filename: 'BLIS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:10:00')), uploaderId: 'system-seed' },
+  { id: 'mock-act', filename: 'ACT Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:15:00')), uploaderId: 'system-seed' },
+  { id: 'mock-faq', filename: 'Internship Requirements FAQ.pdf', category: 'Guide', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-03-10T14:00:00')), uploaderId: 'system-seed' },
+  { id: 'mock-clearance', filename: 'University Clearance Form.pdf', category: 'Forms', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-04-05T11:30:00')), uploaderId: 'system-seed' },
+];
+
 export default function DocumentList() {
   const { user, isBlocked } = useUser();
   const db = useFirestore();
@@ -26,9 +36,15 @@ export default function DocumentList() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [downloading, setDownloading] = useState<string | null>(null);
 
+  const allDocuments = useMemo(() => {
+    const dbDocs = documents || [];
+    const existingFilenames = new Set(dbDocs.map(d => d.filename));
+    const documentsToAdd = mockDocuments.filter(md => !existingFilenames.has(md.filename));
+    return [...documentsToAdd, ...dbDocs];
+  }, [documents]);
+
   const filteredDocuments = useMemo(() => {
-    if (!documents) return [];
-    let docs = documents;
+    let docs = allDocuments;
     if (activeCategory !== 'All') {
         docs = docs.filter(doc => doc.category.toLowerCase() === activeCategory.toLowerCase());
     }
@@ -37,9 +53,13 @@ export default function DocumentList() {
       doc.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doc.category.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [documents, searchTerm, activeCategory]);
+  }, [allDocuments, searchTerm, activeCategory]);
 
   const handleDownload = async (doc: DocumentType) => {
+    if (doc.id.startsWith('mock-')) {
+        toast({ variant: 'default', title: 'Sample Document', description: 'This is a sample document for demonstration purposes.' });
+        return;
+    }
     if (!user) {
       toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to download files.' });
       return;
