@@ -15,8 +15,8 @@ import { FirestorePermissionError } from '@/firebase/errors';
 
 const programs = [
   'Bachelor of Library and Information Science (BSLIS)',
-  'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Digital Animation Technology (BSEMC-DAT)',
   'Bachelor of Science in Computer Science (BSCS)',
+  'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Digital Animation Technology (BSEMC-DAT)',
   'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Game Development (BSEMC-GD)',
   'Bachelor of Science in Information Technology (BSIT)',
   'Bachelor of Science in Information System (BSIS)',
@@ -31,10 +31,7 @@ export default function OnboardingPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // If the user hook is done loading and shows the profile is complete,
-    // they shouldn't be on this page. Redirect them to the main app.
     if (!loading && isProfileComplete) {
-      console.log("Onboarding complete, redirecting from useEffect...");
       router.push('/documents');
     }
   }, [loading, isProfileComplete, router]);
@@ -60,7 +57,7 @@ export default function OnboardingPage() {
       program: program,
       isAdmin: false,
       isBlocked: false,
-      onboardingComplete: true, // Explicitly set onboarding as complete
+      onboardingComplete: true,
     };
     
     setDoc(userDocRef, newUserData, { merge: true })
@@ -70,7 +67,6 @@ export default function OnboardingPage() {
           title: "Profile Saved!",
           description: "Redirecting to the digital library...",
         });
-        // Explicitly redirect after saving, no need to wait for state propagation
         router.push('/documents');
       })
       .catch((error) => {
@@ -92,21 +88,12 @@ export default function OnboardingPage() {
       });
   };
 
-  // Show a loader while the user status is loading.
-  if (loading) {
+  if (loading || isProfileComplete) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
-  }
-  
-  if (isProfileComplete) {
-      return (
-        <div className="flex h-screen w-full items-center justify-center bg-background">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-        );
   }
 
   return (

@@ -18,8 +18,8 @@ import { FirestorePermissionError } from '@/firebase/errors';
 
 const programs = [
   'Bachelor of Library and Information Science (BSLIS)',
-  'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Digital Animation Technology (BSEMC-DAT)',
   'Bachelor of Science in Computer Science (BSCS)',
+  'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Digital Animation Technology (BSEMC-DAT)',
   'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Game Development (BSEMC-GD)',
   'Bachelor of Science in Information Technology (BSIT)',
   'Bachelor of Science in Information System (BSIS)',
