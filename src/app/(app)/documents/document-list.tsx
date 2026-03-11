@@ -14,14 +14,14 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const categories = ['All', 'Curriculum', 'Manual', 'Forms', 'Guide', 'Academic'];
 
-const mockDocuments: DocumentType[] = [
-  { id: 'mock-handbook', filename: 'CICS Student Handbook.pdf', category: 'Manual', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-01-15T09:00:00')), uploaderId: 'system-seed' },
-  { id: 'mock-bsit', filename: 'BSIT Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:00:00')), uploaderId: 'system-seed' },
-  { id: 'mock-bscs', filename: 'BSCS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:05:00')), uploaderId: 'system-seed' },
-  { id: 'mock-blis', filename: 'BLIS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:10:00')), uploaderId: 'system-seed' },
-  { id: 'mock-act', filename: 'ACT Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:15:00')), uploaderId: 'system-seed' },
-  { id: 'mock-faq', filename: 'Internship Requirements FAQ.pdf', category: 'Guide', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-03-10T14:00:00')), uploaderId: 'system-seed' },
-  { id: 'mock-clearance', filename: 'University Clearance Form.pdf', category: 'Forms', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-04-05T11:30:00')), uploaderId: 'system-seed' },
+const mockDocuments = [
+  { id: 'mock-handbook', filename: 'CICS Student Handbook.pdf', category: 'Manual', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-01-15T09:00:00')), uploaderId: 'system-seed', description: 'The rules and regulations for CICS students for the current academic year.' },
+  { id: 'mock-bsit', filename: 'BSIT Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:00:00')), uploaderId: 'system-seed', description: 'The official program sequence for BSIT.' },
+  { id: 'mock-bscs', filename: 'BSCS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:05:00')), uploaderId: 'system-seed', description: 'The official program sequence for BSCS.' },
+  { id: 'mock-blis', filename: 'BLIS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:10:00')), uploaderId: 'system-seed', description: 'The official program sequence for BLIS.' },
+  { id: 'mock-act', filename: 'ACT Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:15:00')), uploaderId: 'system-seed', description: 'The official program sequence for ACT.' },
+  { id: 'mock-faq', filename: 'Internship Requirements FAQ.pdf', category: 'Guide', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-03-10T14:00:00')), uploaderId: 'system-seed', description: 'Frequently asked questions about the CICS internship programs.' },
+  { id: 'mock-clearance', filename: 'University Clearance Form.pdf', category: 'Forms', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-04-05T11:30:00')), uploaderId: 'system-seed', description: 'Official college clearance form for graduating students.' },
 ];
 
 export default function DocumentList() {
@@ -46,17 +46,17 @@ export default function DocumentList() {
   const filteredDocuments = useMemo(() => {
     let docs = allDocuments;
     if (activeCategory !== 'All') {
-        docs = docs.filter(doc => doc.category.toLowerCase() === activeCategory.toLowerCase());
+        docs = docs.filter(doc => (doc as any).category.toLowerCase() === activeCategory.toLowerCase());
     }
     if (!searchTerm) return docs;
     return docs.filter(doc =>
-      doc.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.category.toLowerCase().includes(searchTerm.toLowerCase())
+      (doc as any).filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (doc as any).category.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [allDocuments, searchTerm, activeCategory]);
 
   const handleView = (doc: DocumentType) => {
-    if (doc.id.startsWith('mock-')) {
+    if ((doc as any).id.startsWith('mock-')) {
         toast({ variant: 'default', title: 'Sample Document', description: 'This is a sample document for demonstration purposes.' });
         return;
     }
@@ -68,7 +68,7 @@ export default function DocumentList() {
   };
 
   const handleDownload = async (doc: DocumentType) => {
-    if (doc.id.startsWith('mock-')) {
+    if ((doc as any).id.startsWith('mock-')) {
         toast({ variant: 'default', title: 'Sample Document', description: 'This is a sample document for demonstration purposes.' });
         return;
     }
@@ -186,16 +186,16 @@ export default function DocumentList() {
                 </div>
               </CardHeader>
               <CardContent className="flex-grow">
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {doc.uploadedAt && `Uploaded on ${format(new Date(doc.uploadedAt.seconds * 1000), 'MMM d, yyyy')}`}
+                <p className="text-sm text-muted-foreground line-clamp-3">
+                  {(doc as any).description || (doc.uploadedAt && `Uploaded on ${format(new Date((doc.uploadedAt as any).seconds * 1000), 'MMM d, yyyy')}`)}
                 </p>
               </CardContent>
               <CardFooter className="grid grid-cols-2 gap-2">
-                <Button variant="outline" onClick={() => handleView(doc)} disabled={isBlocked}>
+                <Button variant="outline" onClick={() => handleView(doc as DocumentType)} disabled={isBlocked}>
                     <Eye className="mr-2 h-4 w-4" />
                     View
                 </Button>
-                <Button onClick={() => handleDownload(doc)} disabled={downloading === doc.id || isBlocked}>
+                <Button onClick={() => handleDownload(doc as DocumentType)} disabled={downloading === doc.id || isBlocked}>
                   {downloading === doc.id ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (

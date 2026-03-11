@@ -66,7 +66,7 @@ export default function OnboardingPage() {
         console.log("Onboarding profile saved successfully. Redirecting...");
         toast({
           title: "Profile Saved!",
-          description: "Redirecting to the document library...",
+          description: "Redirecting to the digital library...",
         });
         // Explicitly redirect after saving, no need to wait for state propagation
         router.push('/documents');
