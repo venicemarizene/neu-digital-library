@@ -1,6 +1,6 @@
 'use client';
 
-import { GoogleAuthProvider, signInWithRedirect, getRedirectResult } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { useAuth, useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -25,7 +25,7 @@ export default function LoginPage() {
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [isSigningIn, setIsSigningIn] = useState(true); // Start as true to handle redirect result
+  const [isSigningIn, setIsSigningIn] = useState(false);
 
   useEffect(() => {
     if (!userLoading && user) {
@@ -33,52 +33,42 @@ export default function LoginPage() {
     }
   }, [user, userLoading, router]);
 
-  // Handle redirect result
-  useEffect(() => {
-    if (auth) {
-      getRedirectResult(auth)
-        .then((result) => {
-          // If result is null, it means no redirect operation was pending.
-          // If there is a result, the useUser hook will pick up the new user state.
-        })
-        .catch((error) => {
-          console.error('Error getting redirect result: ', error);
-          let description = 'An unexpected error occurred. Please try again.';
-          if (error.code === 'auth/account-exists-with-different-credential') {
-            description = 'An account already exists with the same email address but different sign-in credentials.';
-          } else if (error.message.includes("hd parameter")) {
-            description = "Access restricted. Please use an 'neu.edu.ph' email account.";
-          } else if (error.code === 'auth/unauthorized-domain') {
-            description = "This app's domain is not authorized for authentication. Please contact an administrator.";
-          }
-          
-          toast({
-            variant: "destructive",
-            title: "Authentication Failed",
-            description: description,
-          });
-        })
-        .finally(() => {
-            setIsSigningIn(false);
-        });
-    }
-  }, [auth, toast]);
-
   const handleSignIn = async () => {
+    if (!auth) return;
     setIsSigningIn(true);
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({
       hd: 'neu.edu.ph',
       prompt: 'select_account'
     });
+
     try {
-        await signInWithRedirect(auth, provider);
+        await signInWithPopup(auth, provider);
+        // On success, the useUser hook will update, and the useEffect above
+        // will handle navigation. We don't need to set isSigningIn to false
+        // as the component will unmount.
     } catch (error: any) {
-        console.error("Sign-in failed to initiate:", error);
-        let description = "Could not start the sign-in process. Please try again.";
-        if (error.code === 'auth/unauthorized-domain') {
-            description = "This application's domain is not authorized for Google Sign-In. An administrator needs to add this domain to the Firebase console's list of authorized domains.";
+        let description = 'An unexpected error occurred during sign-in.';
+        
+        switch (error.code) {
+            case 'auth/popup-closed-by-user':
+                // Don't show an error toast if the user closes the popup
+                setIsSigningIn(false);
+                return;
+            case 'auth/unauthorized-domain':
+                description = "This application's domain is not authorized for Google Sign-In. An administrator needs to add this domain to the Firebase console's list of authorized domains.";
+                break;
+            case 'auth/operation-not-allowed':
+                 description = "Access restricted. Please use an 'neu.edu.ph' email account.";
+                 break;
+            case 'auth/popup-blocked':
+                description = "Popup blocked by browser. Please allow popups for this site to sign in.";
+                break;
+            case 'auth/account-exists-with-different-credential':
+                description = 'An account already exists with the same email address but different sign-in credentials.';
+                break;
         }
+
         toast({
             variant: 'destructive',
             title: 'Authentication Error',
@@ -90,7 +80,7 @@ export default function LoginPage() {
   
   const loading = userLoading || isSigningIn;
 
-  if (loading || (!userLoading && user)) {
+  if (userLoading || (!userLoading && user)) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -109,9 +99,9 @@ export default function LoginPage() {
           <CardDescription>Sign in to access the CICS document vault.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={handleSignIn} className="w-full" variant="outline" disabled={isSigningIn}>
-            <GoogleIcon className="mr-2 h-5 w-5" />
-            Sign in with Google
+          <Button onClick={handleSignIn} className="w-full" variant="outline" disabled={loading}>
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2 h-5 w-5" />}
+            {loading ? "Signing in..." : "Sign in with Google"}
           </Button>
           <p className="mt-4 text-center text-xs text-muted-foreground">
             Use your @neu.edu.ph account to continue.
