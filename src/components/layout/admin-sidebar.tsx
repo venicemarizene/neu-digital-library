@@ -82,8 +82,8 @@ export function AdminSidebar() {
               <AvatarFallback>{getInitials(appUser?.displayName)}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col min-w-0">
-                <span className="text-sm font-semibold truncate text-sidebar-foreground">{appUser?.displayName}</span>
-                <span className="text-xs truncate text-sidebar-foreground/80">{appUser?.email}</span>
+                <span className="text-sm font-semibold text-sidebar-foreground break-words leading-tight">{appUser?.displayName}</span>
+                <span className="text-xs text-sidebar-foreground/80 break-all">{appUser?.email}</span>
             </div>
         </div>
         <SidebarMenu>
