@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Trash2, Upload, FileText, EyeOff, Globe, Users } from 'lucide-react';
+import { Loader2, Trash2, Upload, FileText, Globe, Users } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 const programs = [
@@ -54,6 +54,7 @@ export default function DocumentManager() {
   const documentConstraints = useMemo(() => [orderBy('uploadedAt', 'desc')], []);
   const { data: documents, loading } = useCollection<DocumentType>('Documents', {
     constraints: documentConstraints,
+    listen: true,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 

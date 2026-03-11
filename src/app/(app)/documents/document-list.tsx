@@ -1,6 +1,6 @@
 'use client';
-import { useState, useMemo } from 'react';
-import { collection, addDoc, serverTimestamp, orderBy, Timestamp, where, query } from 'firebase/firestore';
+import { useState, useMemo, useEffect } from 'react';
+import { collection, addDoc, serverTimestamp, orderBy, Timestamp, where } from 'firebase/firestore';
 import { useUser, useFirestore, useCollection } from '@/firebase';
 import type { Document as DocumentType } from '@/lib/types';
 import { Input } from '@/components/ui/input';
@@ -26,7 +26,6 @@ const mockDocuments: (DocumentType & {id: string})[] = [
   { id: 'mock-clearance', filename: 'University Clearance Form.pdf', category: 'Forms', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-04-05T11:30:00')), uploaderId: 'system-seed', description: 'Official college clearance form for graduating students.', visibility: 'ALL_CICS' },
 ];
 
-
 export default function DocumentList() {
   const { user, appUser, isBlocked } = useUser();
   const db = useFirestore();
@@ -47,7 +46,7 @@ export default function DocumentList() {
   }, [appUser?.program]);
 
   const { data: allCicsDocs, loading: loadingAll } = useCollection<DocumentType>('Documents', { constraints: allCicsConstraints, listen: true });
-  const { data: programDocs, loading: loadingProgram } = useCollection<DocumentType>('Documents', { constraints: programSpecificConstraints, listen: true });
+  const { data: programDocs, loading: loadingProgram } = useCollection<DocumentType>('Documents', { constraints: programSpecificConstraints, listen: true, skip: !appUser?.program });
 
   const loading = loadingAll || loadingProgram;
 
@@ -70,17 +69,30 @@ export default function DocumentList() {
     
     return [...documentsToAdd, ...uniqueFirestoreDocs].sort((a, b) => (b.uploadedAt as any) - (a.uploadedAt as any));
   }, [allCicsDocs, programDocs, appUser?.program]);
+  
+  useEffect(() => {
+    if (appUser?.program && !loading) {
+        console.log(`Student Program: ${appUser.program}`);
+        console.log('Documents loaded:', allDocuments.map(d => d.filename));
+    }
+  }, [appUser, allDocuments, loading]);
 
   const filteredDocuments = useMemo(() => {
     let docs = allDocuments;
     if (activeCategory !== 'All') {
         docs = docs.filter(doc => (doc as any).category.toLowerCase() === activeCategory.toLowerCase());
     }
-    if (!searchTerm) return docs;
-    return docs.filter(doc =>
-      (doc as any).filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (doc as any).description.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    if (searchTerm) {
+        docs = docs.filter(doc =>
+            doc.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            doc.description?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }
+    
+    return {
+        general: docs.filter(d => d.visibility === 'ALL_CICS'),
+        programSpecific: docs.filter(d => d.visibility === 'PROGRAM_SPECIFIC'),
+    }
   }, [allDocuments, searchTerm, activeCategory]);
 
   const handleView = (doc: DocumentType) => {
@@ -132,11 +144,50 @@ export default function DocumentList() {
     }
   };
 
+  const renderDocGrid = (docs: DocumentType[]) => (
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+      {docs.map((doc) => (
+        <Card key={doc.id} className="flex flex-col transition-all hover:shadow-lg">
+          <CardHeader>
+            <div className="flex items-start gap-4">
+              <div className="bg-primary/10 p-2 rounded-md">
+                <FileText className="h-6 w-6 flex-shrink-0 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="line-clamp-2 text-base font-headline">{doc.filename}</CardTitle>
+                <CardDescription>{doc.category}</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="flex-grow">
+            <p className="text-sm text-muted-foreground line-clamp-3">
+              {doc.description || (doc.uploadedAt && `Uploaded on ${format(new Date((doc.uploadedAt as any).seconds * 1000), 'MMM d, yyyy')}`)}
+            </p>
+          </CardContent>
+          <CardFooter className="grid grid-cols-2 gap-2">
+            <Button variant="outline" onClick={() => handleView(doc as DocumentType)} disabled={isBlocked}>
+                <Eye className="mr-2 h-4 w-4" />
+                View
+            </Button>
+            <Button onClick={() => handleDownload(doc as DocumentType)} disabled={downloading === doc.id || isBlocked}>
+              {downloading === doc.id ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              {downloading === doc.id ? 'Downloading...' : 'Download'}
+            </Button>
+          </CardFooter>
+        </Card>
+      ))}
+    </div>
+  );
+
   if (loading) {
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between gap-4">
-                <Skeleton className="h-10 flex-1 max-w-sm" />
+            <div className="flex flex-col gap-4">
+               <Skeleton className="h-10 flex-1 max-w-full" />
                 <div className="flex gap-2">
                     <Skeleton className="h-10 w-20" />
                     <Skeleton className="h-10 w-20" />
@@ -198,50 +249,28 @@ export default function DocumentList() {
         </div>
       </div>
 
-      {filteredDocuments.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-          {filteredDocuments.map((doc) => (
-            <Card key={doc.id} className="flex flex-col transition-all hover:shadow-lg">
-              <CardHeader>
-                <div className="flex items-start gap-4">
-                  <div className="bg-primary/10 p-2 rounded-md">
-                    <FileText className="h-6 w-6 flex-shrink-0 text-primary" />
-                  </div>
-                  <div>
-                    <CardTitle className="line-clamp-2 text-base font-headline">{doc.filename}</CardTitle>
-                    <CardDescription>{doc.category}</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-grow">
-                <p className="text-sm text-muted-foreground line-clamp-3">
-                  {doc.description || (doc.uploadedAt && `Uploaded on ${format(new Date((doc.uploadedAt as any).seconds * 1000), 'MMM d, yyyy')}`)}
-                </p>
-              </CardContent>
-              <CardFooter className="grid grid-cols-2 gap-2">
-                <Button variant="outline" onClick={() => handleView(doc as DocumentType)} disabled={isBlocked}>
-                    <Eye className="mr-2 h-4 w-4" />
-                    View
-                </Button>
-                <Button onClick={() => handleDownload(doc as DocumentType)} disabled={downloading === doc.id || isBlocked}>
-                  {downloading === doc.id ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="mr-2 h-4 w-4" />
-                  )}
-                  {downloading === doc.id ? 'Downloading...' : 'Download'}
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      ) : (
+      {filteredDocuments.general.length === 0 && filteredDocuments.programSpecific.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-card py-24 text-center">
           <FileText className="h-12 w-12 text-muted-foreground" />
           <h3 className="mt-4 text-lg font-semibold">No Documents Found</h3>
           <p className="mt-2 text-sm text-muted-foreground">
             {searchTerm || activeCategory !== 'All' ? 'Try adjusting your search or filters.' : 'There are no documents in the library yet.'}
           </p>
+        </div>
+      ) : (
+        <div className="space-y-8">
+            {filteredDocuments.general.length > 0 && (
+                <section className="space-y-4">
+                    <h2 className="text-2xl font-bold tracking-tight font-headline">General CICS Documents</h2>
+                    {renderDocGrid(filteredDocuments.general)}
+                </section>
+            )}
+            {filteredDocuments.programSpecific.length > 0 && (
+                 <section className="space-y-4">
+                    <h2 className="text-2xl font-bold tracking-tight font-headline">Your Program ({appUser?.program?.match(/\(([^)]+)\)/)?.[1] || 'Specific'})</h2>
+                    {renderDocGrid(filteredDocuments.programSpecific)}
+                </section>
+            )}
         </div>
       )}
     </div>

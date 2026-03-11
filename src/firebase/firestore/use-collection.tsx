@@ -18,6 +18,7 @@ import { useFirestore } from '@/firebase';
 interface UseCollectionOptions {
   constraints?: QueryConstraint[];
   listen?: boolean;
+  skip?: boolean;
 }
 
 export function useCollection<T>(
@@ -32,11 +33,19 @@ export function useCollection<T>(
   const memoizedConstraints = useMemo(() => options?.constraints, [options?.constraints]);
 
   useEffect(() => {
+    if (options?.skip) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
+
     if (memoizedConstraints === undefined) {
       setData(null);
       setLoading(false);
       return;
     }
+    
+    setLoading(true);
 
     const collectionRef = collection(db, path);
     const q = query(collectionRef, ...(memoizedConstraints || []));
@@ -61,7 +70,7 @@ export function useCollection<T>(
 
     const unsubscribe = onSnapshot(q, handleSnapshot, handleError);
     return () => unsubscribe();
-  }, [db, path, memoizedConstraints, options?.listen]);
+  }, [db, path, memoizedConstraints, options?.listen, options?.skip]);
 
   return { data, loading, error };
 }
