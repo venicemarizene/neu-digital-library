@@ -37,7 +37,7 @@ export function AppSidebar() {
       <SidebarHeader className="pt-6">
         <div className="flex flex-col gap-1 pl-2">
             <Logo brand="CICS" name="DocHub" isDark showIcon={false} />
-            <p className="text-xs font-medium text-sidebar-foreground/70">Student</p>
+            <p className="text-sm font-medium text-sidebar-foreground/70">Student</p>
         </div>
       </SidebarHeader>
       <SidebarContent>
