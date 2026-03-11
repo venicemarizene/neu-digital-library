@@ -43,6 +43,16 @@ export function AdminSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
+           <SidebarMenuItem>
+            <SidebarMenuButton
+              isActive={pathname === '/admin/analytics'}
+              onClick={() => router.push('/admin/analytics')}
+              tooltip="Analytics"
+            >
+              <BarChart3 />
+              <span>Analytics</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               isActive={pathname === '/admin/students'}
@@ -61,16 +71,6 @@ export function AdminSidebar() {
             >
               <File />
               <span>Documents</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              isActive={pathname === '/admin/analytics'}
-              onClick={() => router.push('/admin/analytics')}
-              tooltip="Analytics"
-            >
-              <BarChart3 />
-              <span>Analytics</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
