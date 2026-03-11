@@ -8,7 +8,7 @@ import type { AppUser } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
@@ -17,12 +17,12 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
 const programs = [
-  'Bachelor of Library and Information Science (BSLIS)',
-  'Bachelor of Science in Computer Science (BSCS)',
-  'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Digital Animation Technology (BSEMC-DAT)',
-  'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Game Development (BSEMC-GD)',
-  'Bachelor of Science in Information Technology (BSIT)',
-  'Bachelor of Science in Information System (BSIS)',
+  'Bachelor of Library and Information Science',
+  'Bachelor of Science in Computer Science',
+  'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Digital Animation Technology',
+  'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Game Development',
+  'Bachelor of Science in Information Technology',
+  'Bachelor of Science in Information System',
 ];
 
 const profileSchema = z.object({
@@ -94,7 +94,7 @@ export function ProfileForm({ user }: { user: AppUser }) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Program</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
+              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting || !!user.program}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select your program..." />
@@ -106,11 +106,12 @@ export function ProfileForm({ user }: { user: AppUser }) {
                   ))}
                 </SelectContent>
               </Select>
+              {!!user.program && <FormDescription>Your program is set and cannot be changed.</FormDescription>}
               <FormMessage />
             </FormItem>
           )}
         />
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting || !!user.program}>
           {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Save Changes
         </Button>

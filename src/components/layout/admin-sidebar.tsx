@@ -76,14 +76,14 @@ export function AdminSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="flex-col !items-start gap-4">
-        <div className="flex items-center gap-3 px-2">
+        <div className="flex items-center gap-3 px-2 overflow-hidden">
             <Avatar className="h-9 w-9">
               <AvatarImage src={appUser?.photoURL ?? undefined} alt={appUser?.displayName ?? 'Admin'} />
               <AvatarFallback>{getInitials(appUser?.displayName)}</AvatarFallback>
             </Avatar>
-            <div className="flex flex-col text-xs overflow-hidden">
+            <div className="flex flex-col min-w-0">
                 <span className="font-semibold text-foreground truncate">{appUser?.displayName}</span>
-                <span className="text-muted-foreground truncate">{appUser?.email}</span>
+                <span className="text-muted-foreground truncate text-xs">{appUser?.email}</span>
             </div>
         </div>
         <SidebarMenu>

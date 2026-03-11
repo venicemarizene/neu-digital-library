@@ -65,14 +65,14 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="flex-col !items-start gap-4">
-        <div className="flex items-center gap-3 px-2">
+        <div className="flex items-center gap-3 px-2 overflow-hidden">
             <Avatar className="h-9 w-9">
               <AvatarImage src={appUser?.photoURL ?? undefined} alt={appUser?.displayName ?? 'User'} />
               <AvatarFallback>{getInitials(appUser?.displayName)}</AvatarFallback>
             </Avatar>
-            <div className="flex flex-col text-xs overflow-hidden text-sidebar-foreground">
-                <span className="font-semibold truncate">{appUser?.displayName}</span>
-                <span className="opacity-80 truncate">{appUser?.email}</span>
+            <div className="flex flex-col min-w-0">
+                <span className="font-semibold truncate text-sidebar-foreground">{appUser?.displayName}</span>
+                <span className="text-xs opacity-80 truncate text-sidebar-foreground">{appUser?.email}</span>
             </div>
         </div>
         <SidebarMenu>
