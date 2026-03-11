@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
@@ -21,20 +21,20 @@ const programs = [
 ];
 
 export default function OnboardingPage() {
-  const { user, loading } = useUser();
+  const { user, loading, isProfileComplete } = useUser();
   const db = useFirestore();
   const router = useRouter();
   const [program, setProgram] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  if (loading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
-  }
+  useEffect(() => {
+    // If the user hook is done loading and shows the profile is complete,
+    // they shouldn't be on this page. Redirect them to the main app.
+    if (!loading && isProfileComplete) {
+      router.push('/documents');
+    }
+  }, [loading, isProfileComplete, router]);
 
   const handleSubmit = () => {
     if (!user) {
@@ -65,8 +65,7 @@ export default function OnboardingPage() {
           title: "Profile Saved!",
           description: "Redirecting to the document library...",
         });
-        // The redirection is now handled automatically by the useUser hook
-        // and the logic in src/app/page.tsx. No need to call router.push here.
+        // The redirection is handled by the useEffect hook watching for isProfileComplete to become true.
       })
       .catch((error) => {
         console.error('Error during onboarding:', error);
@@ -83,9 +82,21 @@ export default function OnboardingPage() {
           title: 'Onboarding Failed', 
           description: 'Could not save your profile. Please try again.' 
         });
+      })
+      .finally(() => {
         setIsSubmitting(false);
-    });
+      });
   };
+
+  // Show a loader while the user status is loading, or if the profile is complete
+  // and we are waiting for the redirect to happen.
+  if (loading || (!loading && isProfileComplete)) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <main className="flex min-h-screen w-full items-center justify-center bg-background p-4">
