@@ -67,9 +67,9 @@ export function AppSidebar() {
               <AvatarImage src={appUser?.photoURL ?? undefined} alt={appUser?.displayName ?? 'User'} />
               <AvatarFallback>{getInitials(appUser?.displayName)}</AvatarFallback>
             </Avatar>
-            <div className="flex flex-col text-sm">
-                <span className="font-semibold text-foreground">{appUser?.displayName}</span>
-                <span className="text-muted-foreground">{appUser?.email}</span>
+            <div className="flex flex-col text-sm overflow-hidden">
+                <span className="font-semibold text-foreground truncate">{appUser?.displayName}</span>
+                <span className="text-muted-foreground truncate">{appUser?.email}</span>
             </div>
         </div>
         <SidebarMenu>

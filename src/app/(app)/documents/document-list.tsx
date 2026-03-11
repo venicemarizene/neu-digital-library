@@ -6,7 +6,7 @@ import type { Document as DocumentType } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download, FileText, Loader2, Search, Ban } from 'lucide-react';
+import { Download, FileText, Loader2, Search, Ban, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
@@ -54,6 +54,18 @@ export default function DocumentList() {
       doc.category.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [allDocuments, searchTerm, activeCategory]);
+
+  const handleView = (doc: DocumentType) => {
+    if (doc.id.startsWith('mock-')) {
+        toast({ variant: 'default', title: 'Sample Document', description: 'This is a sample document for demonstration purposes.' });
+        return;
+    }
+    if (isBlocked) {
+      toast({ variant: 'destructive', title: 'Account Restricted', description: 'Your account is restricted from viewing files.' });
+      return;
+    }
+    window.open(doc.downloadURL, '_blank');
+  };
 
   const handleDownload = async (doc: DocumentType) => {
     if (doc.id.startsWith('mock-')) {
@@ -178,8 +190,12 @@ export default function DocumentList() {
                   {doc.uploadedAt && `Uploaded on ${format(new Date(doc.uploadedAt.seconds * 1000), 'MMM d, yyyy')}`}
                 </p>
               </CardContent>
-              <CardFooter>
-                <Button onClick={() => handleDownload(doc)} disabled={downloading === doc.id || isBlocked} className="w-full">
+              <CardFooter className="grid grid-cols-2 gap-2">
+                <Button variant="outline" onClick={() => handleView(doc)} disabled={isBlocked}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    View
+                </Button>
+                <Button onClick={() => handleDownload(doc)} disabled={downloading === doc.id || isBlocked}>
                   {downloading === doc.id ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
