@@ -28,6 +28,18 @@ export default function LoginPage() {
   const [isSigningIn, setIsSigningIn] = useState(false);
 
   useEffect(() => {
+    const authError = localStorage.getItem('authError');
+    if (authError === 'invalid-domain') {
+      toast({
+        variant: 'destructive',
+        title: 'Authentication Error',
+        description: "Access restricted. Please use an '@neu.edu.ph' email account.",
+      });
+      localStorage.removeItem('authError');
+    }
+  }, [toast]);
+
+  useEffect(() => {
     if (!userLoading && user) {
       router.push('/');
     }

@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { onAuthStateChanged, User as FirebaseUser, signOut } from 'firebase/auth';
 import { doc, onSnapshot, DocumentData } from 'firebase/firestore';
 import { useAuth, useFirestore } from '@/firebase';
 import { AppUser } from '@/lib/types';
@@ -28,8 +28,15 @@ export const useUser = (): UserData => {
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-      if (!firebaseUser) {
+      if (firebaseUser) {
+        if (!firebaseUser.email?.endsWith('@neu.edu.ph')) {
+          localStorage.setItem('authError', 'invalid-domain');
+          signOut(auth);
+          return;
+        }
+        setUser(firebaseUser);
+      } else {
+        setUser(null);
         setAppUser(null);
         setIsProfileComplete(null);
         setIsAdmin(false);
