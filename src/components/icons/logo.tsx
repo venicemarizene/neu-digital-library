@@ -16,11 +16,11 @@ export function Logo({
   return (
     <div className={`flex items-center gap-2 ${isDark ? 'text-sidebar-foreground' : 'text-primary'} ${className}`}>
       {showIcon && <ShieldCheck className="h-8 w-8 text-primary" />}
-      <div className="flex flex-col">
-        <span className={`font-headline text-xl font-bold leading-tight tracking-tighter ${isDark ? 'text-accent' : 'text-foreground'}`}>
+      <div className="flex flex-row items-baseline gap-1.5">
+        <span className={`font-headline text-xl font-bold leading-none tracking-tighter ${isDark ? 'text-accent' : 'text-foreground'}`}>
           {brand}
         </span>
-        <span className={`font-headline text-sm font-semibold leading-tight ${isDark ? 'text-sidebar-foreground/80' : 'text-foreground/80'}`}>
+        <span className={`font-headline text-lg font-semibold leading-none ${isDark ? 'text-sidebar-foreground/80' : 'text-foreground/80'}`}>
           {name}
         </span>
       </div>
