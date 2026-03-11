@@ -51,7 +51,7 @@ export default function DocumentManager() {
     setIsSubmitting(true);
     try {
       const file = values.file[0];
-      const storageRef = ref(storage, `documents/${file.name}`);
+      const storageRef = ref(storage, `cics_docs/${file.name}`);
       const uploadResult = await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(uploadResult.ref);
 
@@ -80,7 +80,7 @@ export default function DocumentManager() {
   const handleDelete = async (docToDelete: DocumentType) => {
     try {
       await deleteDoc(firestoreDoc(db, 'Documents', docToDelete.id));
-      const storageRef = ref(storage, `documents/${docToDelete.filename}`);
+      const storageRef = ref(storage, `cics_docs/${docToDelete.filename}`);
       await deleteObject(storageRef);
       toast({ title: 'Success', description: 'Document deleted successfully.' });
     } catch (error) {
