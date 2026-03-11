@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { collection, addDoc, serverTimestamp, deleteDoc, doc as firestoreDoc } from 'firebase/firestore';
@@ -15,13 +15,35 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Trash2, Upload, FileText } from 'lucide-react';
+import { Loader2, Trash2, Upload, FileText, EyeOff, Globe, Users } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+
+const programs = [
+  'Bachelor of Library and Information Science (BSLIS)',
+  'Bachelor of Science in Computer Science (BSCS)',
+  'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Digital Animation Technology (BSEMC-DAT)',
+  'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Game Development (BSEMC-GD)',
+  'Bachelor of Science in Information Technology (BSIT)',
+  'Bachelor of Science in Information System (BSIS)',
+];
 
 const documentSchema = z.object({
   file: z.instanceof(FileList).refine(files => files?.length === 1, 'File is required.'),
   category: z.string().min(1, 'Category is required.'),
+  description: z.string().min(1, 'Description is required.'),
+  visibility: z.enum(['ALL_CICS', 'PROGRAM_SPECIFIC'], { required_error: 'Please select visibility.' }),
+  targetProgram: z.string().optional(),
+}).refine(data => {
+    if (data.visibility === 'PROGRAM_SPECIFIC') {
+        return !!data.targetProgram;
+    }
+    return true;
+}, {
+    message: "Target program is required for program-specific visibility.",
+    path: ["targetProgram"],
 });
 
 export default function DocumentManager() {
@@ -39,8 +61,15 @@ export default function DocumentManager() {
     resolver: zodResolver(documentSchema),
     defaultValues: {
       category: '',
+      description: '',
       file: undefined,
+      visibility: 'ALL_CICS',
     },
+  });
+
+  const visibility = useWatch({
+    control: form.control,
+    name: 'visibility'
   });
 
   async function onSubmit(values: z.infer<typeof documentSchema>) {
@@ -58,9 +87,12 @@ export default function DocumentManager() {
       await addDoc(collection(db, 'Documents'), {
         filename: file.name,
         category: values.category,
+        description: values.description,
         downloadURL: downloadURL,
         uploadedAt: serverTimestamp(),
         uploaderId: user.uid,
+        visibility: values.visibility,
+        targetProgram: values.visibility === 'PROGRAM_SPECIFIC' ? values.targetProgram : null,
       });
 
       toast({ title: 'Success', description: 'Document uploaded successfully.' });
@@ -97,7 +129,7 @@ export default function DocumentManager() {
         <Card>
           <CardHeader>
             <CardTitle>Upload New Document</CardTitle>
-            <CardDescription>Select a PDF and assign a category.</CardDescription>
+            <CardDescription>Select a PDF and provide its details.</CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -122,12 +154,85 @@ export default function DocumentManager() {
                     <FormItem>
                       <FormLabel>Category</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., Syllabi, Forms, Memos" {...field} />
+                        <Input placeholder="e.g., Curriculum, Forms, Manual" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Input placeholder="A brief summary of the document." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="visibility"
+                  render={({ field }) => (
+                    <FormItem className="space-y-3">
+                      <FormLabel>Visibility</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="flex flex-col space-y-1"
+                        >
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="ALL_CICS" />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              All CICS Students
+                            </FormLabel>
+                          </FormItem>
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="PROGRAM_SPECIFIC" />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              Program-Specific
+                            </FormLabel>
+                          </FormItem>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {visibility === 'PROGRAM_SPECIFIC' && (
+                    <FormField
+                    control={form.control}
+                    name="targetProgram"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Target Program</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a target program" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            {programs.map((p) => (
+                                <SelectItem key={p} value={p}>{p}</SelectItem>
+                            ))}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                )}
+
                 <Button type="submit" disabled={isSubmitting} className="w-full">
                   {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                   Upload Document
@@ -153,7 +258,7 @@ export default function DocumentManager() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Filename</TableHead>
-                    <TableHead>Category</TableHead>
+                    <TableHead>Visibility</TableHead>
                     <TableHead>Uploaded</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -162,7 +267,14 @@ export default function DocumentManager() {
                   {documents.map((doc) => (
                     <TableRow key={doc.id}>
                       <TableCell className="font-medium">{doc.filename}</TableCell>
-                      <TableCell>{doc.category}</TableCell>
+                      <TableCell>
+                        <div className='flex items-center gap-2'>
+                            {doc.visibility === 'ALL_CICS' ? <Globe className='h-4 w-4 text-muted-foreground' /> : <Users className='h-4 w-4 text-muted-foreground' />}
+                            <span className='text-xs'>
+                                {doc.visibility === 'PROGRAM_SPECIFIC' ? doc.targetProgram?.match(/\(([^)]+)\)/)?.[1] || 'Specific' : 'All CICS'}
+                            </span>
+                        </div>
+                      </TableCell>
                       <TableCell>{doc.uploadedAt ? format(doc.uploadedAt.toDate(), 'yyyy-MM-dd') : ''}</TableCell>
                       <TableCell className="text-right">
                         <AlertDialog>

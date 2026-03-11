@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { collection, addDoc, serverTimestamp, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, orderBy, Timestamp, where, query } from 'firebase/firestore';
 import { useUser, useFirestore, useCollection } from '@/firebase';
 import type { Document as DocumentType } from '@/lib/types';
 import { Input } from '@/components/ui/input';
@@ -14,36 +14,62 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const categories = ['All', 'Curriculum', 'Manual', 'Forms', 'Guide', 'Academic'];
 
-const mockDocuments = [
-  { id: 'mock-handbook', filename: 'CICS Student Handbook.pdf', category: 'Manual', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-01-15T09:00:00')), uploaderId: 'system-seed', description: 'The rules and regulations for CICS students for the current academic year.' },
-  { id: 'mock-bslis', filename: 'BSLIS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:00:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Library and Information Science (BSLIS).' },
-  { id: 'mock-bscs', filename: 'BSCS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:10:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Computer Science (BSCS).' },
-  { id: 'mock-bsemc-dat', filename: 'BSEMC-DAT Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:05:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Digital Animation Technology (BSEMC-DAT).' },
-  { id: 'mock-bsemc-gd', filename: 'BSEMC-GD Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:15:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Game Development (BSEMC-GD).' },
-  { id: 'mock-bsit', filename: 'BSIT Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:20:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Information Technology (BSIT).' },
-  { id: 'mock-bsis', filename: 'BSIS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:25:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Information System (BSIS).' },
-  { id: 'mock-faq', filename: 'Internship Requirements FAQ.pdf', category: 'Guide', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-03-10T14:00:00')), uploaderId: 'system-seed', description: 'Frequently asked questions about the CICS internship programs.' },
-  { id: 'mock-clearance', filename: 'University Clearance Form.pdf', category: 'Forms', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-04-05T11:30:00')), uploaderId: 'system-seed', description: 'Official college clearance form for graduating students.' },
+const mockDocuments: (DocumentType & {id: string})[] = [
+  { id: 'mock-handbook', filename: 'CICS Student Handbook.pdf', category: 'Manual', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-01-15T09:00:00')), uploaderId: 'system-seed', description: 'The rules and regulations for CICS students for the current academic year.', visibility: 'ALL_CICS' },
+  { id: 'mock-bslis', filename: 'BSLIS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:00:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Library and Information Science (BSLIS).', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Library and Information Science (BSLIS)' },
+  { id: 'mock-bscs', filename: 'BSCS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:10:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Computer Science (BSCS).', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Computer Science (BSCS)' },
+  { id: 'mock-bsemc-dat', filename: 'BSEMC-DAT Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:05:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Digital Animation Technology (BSEMC-DAT).', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Digital Animation Technology (BSEMC-DAT)' },
+  { id: 'mock-bsemc-gd', filename: 'BSEMC-GD Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:15:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Game Development (BSEMC-GD).', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Game Development (BSEMC-GD)' },
+  { id: 'mock-bsit', filename: 'BSIT Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:20:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Information Technology (BSIT).', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Information Technology (BSIT)' },
+  { id: 'mock-bsis', filename: 'BSIS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:25:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Information System (BSIS).', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Information System (BSIS)' },
+  { id: 'mock-faq', filename: 'Internship Requirements FAQ.pdf', category: 'Guide', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-03-10T14:00:00')), uploaderId: 'system-seed', description: 'Frequently asked questions about the CICS internship programs.', visibility: 'ALL_CICS' },
+  { id: 'mock-clearance', filename: 'University Clearance Form.pdf', category: 'Forms', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-04-05T11:30:00')), uploaderId: 'system-seed', description: 'Official college clearance form for graduating students.', visibility: 'ALL_CICS' },
 ];
 
+
 export default function DocumentList() {
-  const { user, isBlocked } = useUser();
+  const { user, appUser, isBlocked } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
-  const documentConstraints = useMemo(() => [orderBy('uploadedAt', 'desc')], []);
-  const { data: documents, loading } = useCollection<DocumentType>('Documents', {
-    constraints: documentConstraints,
-  });
+  
+  const allCicsConstraints = useMemo(() => [
+    where('visibility', '==', 'ALL_CICS'),
+    orderBy('uploadedAt', 'desc')
+  ], []);
+
+  const programSpecificConstraints = useMemo(() => {
+      if (!appUser?.program) return [];
+      return [
+          where('visibility', '==', 'PROGRAM_SPECIFIC'),
+          where('targetProgram', '==', appUser.program),
+          orderBy('uploadedAt', 'desc')
+      ];
+  }, [appUser?.program]);
+
+  const { data: allCicsDocs, loading: loadingAll } = useCollection<DocumentType>('Documents', { constraints: allCicsConstraints, listen: true });
+  const { data: programDocs, loading: loadingProgram } = useCollection<DocumentType>('Documents', { constraints: programSpecificConstraints, listen: true });
+
+  const loading = loadingAll || loadingProgram;
+
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [downloading, setDownloading] = useState<string | null>(null);
 
   const allDocuments = useMemo(() => {
-    const dbDocs = documents || [];
-    const existingFilenames = new Set(dbDocs.map(d => d.filename));
-    const documentsToAdd = mockDocuments.filter(md => !existingFilenames.has(md.filename));
-    return [...documentsToAdd, ...dbDocs].sort((a, b) => (b.uploadedAt as any) - (a.uploadedAt as any));
-  }, [documents]);
+    const firestoreDocs = [...(allCicsDocs || []), ...(programDocs || [])];
+    const uniqueFirestoreDocs = Array.from(new Map(firestoreDocs.map(doc => [doc.id, doc])).values());
+
+    const existingFilenames = new Set(uniqueFirestoreDocs.map(d => d.filename));
+
+    const documentsToAdd = mockDocuments.filter(md => {
+      if (existingFilenames.has(md.filename)) return false;
+      if (md.visibility === 'ALL_CICS') return true;
+      if (md.visibility === 'PROGRAM_SPECIFIC' && md.targetProgram === appUser?.program) return true;
+      return false;
+    });
+    
+    return [...documentsToAdd, ...uniqueFirestoreDocs].sort((a, b) => (b.uploadedAt as any) - (a.uploadedAt as any));
+  }, [allCicsDocs, programDocs, appUser?.program]);
 
   const filteredDocuments = useMemo(() => {
     let docs = allDocuments;
@@ -189,7 +215,7 @@ export default function DocumentList() {
               </CardHeader>
               <CardContent className="flex-grow">
                 <p className="text-sm text-muted-foreground line-clamp-3">
-                  {(doc as any).description || (doc.uploadedAt && `Uploaded on ${format(new Date((doc.uploadedAt as any).seconds * 1000), 'MMM d, yyyy')}`)}
+                  {doc.description || (doc.uploadedAt && `Uploaded on ${format(new Date((doc.uploadedAt as any).seconds * 1000), 'MMM d, yyyy')}`)}
                 </p>
               </CardContent>
               <CardFooter className="grid grid-cols-2 gap-2">

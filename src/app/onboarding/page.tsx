@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore } from '@/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -58,16 +58,17 @@ export default function OnboardingPage() {
       isAdmin: false,
       isBlocked: false,
       onboardingComplete: true,
+      createdAt: serverTimestamp(),
     };
     
     setDoc(userDocRef, newUserData, { merge: true })
       .then(() => {
-        console.log("Onboarding profile saved successfully. Redirecting...");
+        console.log("Onboarding profile saved successfully.");
         toast({
           title: "Profile Saved!",
-          description: "Redirecting to the digital library...",
+          description: "You will be redirected shortly...",
         });
-        router.push('/documents');
+        // The useUser hook will detect the change and the root layout will handle redirection.
       })
       .catch((error) => {
         console.error('Error during onboarding:', error);

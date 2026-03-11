@@ -9,6 +9,7 @@ export interface AppUser {
   isAdmin: boolean;
   isBlocked: boolean;
   onboardingComplete: boolean;
+  createdAt?: Timestamp;
 }
 
 export interface Document {
@@ -18,6 +19,9 @@ export interface Document {
   category: string;
   uploadedAt: Timestamp;
   uploaderId: string;
+  visibility?: 'ALL_CICS' | 'PROGRAM_SPECIFIC';
+  targetProgram?: string;
+  description?: string;
 }
 
 export interface DownloadLog {
