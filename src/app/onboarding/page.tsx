@@ -10,8 +10,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { personalizedDocumentRecommendations } from '@/ai/flows/personalized-document-recommendations';
-import OnboardingRecommendations from '@/components/onboarding-recommendations';
 
 const programs = [
   'Bachelor of Science in Information Technology (BSIT)',
@@ -26,7 +24,6 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [program, setProgram] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [recommendations, setRecommendations] = useState<any[] | null>(null);
   const { toast } = useToast();
 
   if (loading) {
@@ -50,7 +47,7 @@ export default function OnboardingPage() {
 
     setIsSubmitting(true);
     try {
-      // 1. Create user profile in Firestore
+      // Create user profile in Firestore
       const userDocRef = doc(db, 'Users', user.uid);
       await setDoc(userDocRef, {
         uid: user.uid,
@@ -62,14 +59,8 @@ export default function OnboardingPage() {
         isBlocked: false,
       });
 
-      // 2. Get AI recommendations
-      const result = await personalizedDocumentRecommendations({ undergraduateProgram: program });
-      if (result && result.recommendations) {
-        setRecommendations(result.recommendations);
-      } else {
-        // If AI fails, just redirect
-        router.push('/');
-      }
+      // Redirect immediately to let the main page router handle navigation
+      router.push('/');
 
     } catch (error) {
       console.error('Error during onboarding:', error);
@@ -77,11 +68,6 @@ export default function OnboardingPage() {
       setIsSubmitting(false);
     }
   };
-  
-  const handleModalClose = () => {
-    setRecommendations(null);
-    router.push('/');
-  }
 
   return (
     <main className="flex min-h-screen w-full items-center justify-center bg-background p-4">
@@ -107,7 +93,6 @@ export default function OnboardingPage() {
           </div>
         </CardContent>
       </Card>
-      <OnboardingRecommendations recommendations={recommendations} onClose={handleModalClose} />
     </main>
   );
 }
