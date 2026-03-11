@@ -10,6 +10,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const programs = [
   'Bachelor of Science in Information Technology (BSIT)',
@@ -34,7 +36,7 @@ export default function OnboardingPage() {
     );
   }
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!user) {
       toast({ variant: 'destructive', title: 'Error', description: 'You are not logged in.' });
       router.push('/login');
@@ -46,27 +48,38 @@ export default function OnboardingPage() {
     }
 
     setIsSubmitting(true);
-    try {
-      // Create user profile in Firestore
-      const userDocRef = doc(db, 'Users', user.uid);
-      await setDoc(userDocRef, {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-        photoURL: user.photoURL,
-        program: program,
-        isAdmin: false,
-        isBlocked: false,
+    const userDocRef = doc(db, 'Users', user.uid);
+    const newUserData = {
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+      program: program,
+      isAdmin: false,
+      isBlocked: false,
+    };
+    
+    setDoc(userDocRef, newUserData)
+      .then(() => {
+        router.push('/documents');
+      })
+      .catch((error) => {
+        console.error('Error during onboarding:', error);
+        
+        const permissionError = new FirestorePermissionError({
+          path: userDocRef.path,
+          operation: 'create',
+          requestResourceData: newUserData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+
+        toast({ 
+          variant: 'destructive', 
+          title: 'Onboarding Failed', 
+          description: 'Could not save your profile. Please try again.' 
+        });
+        setIsSubmitting(false);
       });
-
-      // Redirect immediately to the document library
-      router.push('/documents');
-
-    } catch (error) {
-      console.error('Error during onboarding:', error);
-      toast({ variant: 'destructive', title: 'Onboarding Failed', description: 'Could not save your profile. Please try again.' });
-      setIsSubmitting(false);
-    }
   };
 
   return (
