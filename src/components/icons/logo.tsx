@@ -1,8 +1,8 @@
-import { ShieldCheck } from "lucide-react";
+import { LibraryBig } from "lucide-react";
 
 export function Logo({
   className,
-  name = "VaultConnect",
+  name = "Digital Library",
   brand = "CICS",
   isDark = false,
   showIcon = true,
@@ -15,7 +15,7 @@ export function Logo({
 }) {
   return (
     <div className={`flex items-center gap-2 ${isDark ? 'text-sidebar-foreground' : 'text-primary'} ${className}`}>
-      {showIcon && <ShieldCheck className="h-8 w-8 text-primary" />}
+      {showIcon && <LibraryBig className="h-8 w-8 text-primary" />}
       <div className="flex flex-row items-baseline gap-1.5">
         <span className={`font-headline text-2xl font-bold leading-none tracking-tighter ${isDark ? 'text-accent' : 'text-foreground'}`}>
           {brand}

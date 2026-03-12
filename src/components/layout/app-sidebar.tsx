@@ -35,7 +35,7 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <Logo brand="CICS" name="VaultConnect" isDark />
+        <Logo brand="CICS" name="Digital Library" isDark />
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
