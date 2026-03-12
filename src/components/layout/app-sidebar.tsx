@@ -34,14 +34,11 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="pt-6">
-        <div className="flex flex-col gap-1 pl-2">
-            <Logo brand="CICS" name="DocHub" isDark showIcon={false} />
-            <p className="text-lg font-medium text-sidebar-foreground/70">Student</p>
-        </div>
+      <SidebarHeader>
+        <Logo brand="CICS" name="VaultConnect" isDark />
       </SidebarHeader>
-      <SidebarContent className="pt-8">
-        <SidebarMenu className="px-4">
+      <SidebarContent>
+        <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               isActive={pathname.startsWith('/documents')}
@@ -71,7 +68,7 @@ export function AppSidebar() {
               <AvatarFallback>{getInitials(appUser?.displayName)}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col min-w-0">
-                <span className="text-xs font-semibold text-sidebar-foreground break-words leading-tight">{appUser?.displayName}</span>
+                <span className="text-sm font-semibold text-sidebar-foreground break-words leading-tight">{appUser?.displayName}</span>
                 <span className="text-xs text-sidebar-foreground/80 break-all">{appUser?.email}</span>
             </div>
         </div>
