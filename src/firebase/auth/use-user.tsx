@@ -29,8 +29,11 @@ export const useUser = (): UserData => {
   const [isBlocked, setIsBlocked] = useState(false);
 
   useEffect(() => {
-    if (!auth) {
-      setLoading(false);
+    // This effect now depends on both `auth` and `db` becoming available.
+    // It will not run until Firebase has been initialized on the client.
+    if (!auth || !db) {
+      // By simply returning, we keep `loading` as `true` until the services are ready,
+      // which prevents a hydration mismatch.
       return;
     };
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
@@ -41,22 +44,26 @@ export const useUser = (): UserData => {
           return;
         }
         setUser(firebaseUser);
+        // The second useEffect will now handle fetching the user profile and setting loading to false.
       } else {
+        // This is the case for a logged-out user.
         setUser(null);
         setAppUser(null);
         setIsProfileComplete(null);
         setIsAdmin(false);
         setIsBlocked(false);
-        setLoading(false);
+        setLoading(false); // We can safely set loading to false here.
       }
     });
 
     return () => unsubscribeAuth();
-  }, [auth]);
+  }, [auth, db]); // Added `db` to the dependency array for robustness.
 
   useEffect(() => {
+    // This effect is for fetching the Firestore user profile.
     if (!user || !db) {
-      if (!user) setLoading(false);
+      // If the user is null (logged out), the first effect already handled setting loading to false.
+      // If the db is not ready, we just wait.
       return;
     }
     const userDocRef = doc(db, 'Users', user.uid);
@@ -81,6 +88,7 @@ export const useUser = (): UserData => {
           setIsAdmin(isDesignatedAdmin);
           setIsBlocked(false);
         }
+        // This is the final step in the loading process for a logged-in user.
         setLoading(false);
       },
       (error) => {
@@ -89,7 +97,7 @@ export const useUser = (): UserData => {
         setIsProfileComplete(false);
         setIsAdmin(false);
         setIsBlocked(false);
-        setLoading(false);
+        setLoading(false); // Also set loading false on error.
       }
     );
     return () => unsubscribeFirestore();
