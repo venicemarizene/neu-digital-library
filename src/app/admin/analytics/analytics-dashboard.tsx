@@ -36,12 +36,14 @@ export default function AnalyticsDashboard() {
   }, []);
 
   const logConstraints = useMemo(() => {
+    // Only compute the date-based constraints on the client to avoid hydration mismatch
+    if (!isMounted) return [];
     const startDate = getStartDate(period);
     return [
       where('downloadedAt', '>=', startDate),
       orderBy('downloadedAt', 'desc'),
     ];
-  }, [period]);
+  }, [period, isMounted]);
 
   const studentConstraints = useMemo(() => [where('isAdmin', '==', false)], []);
 
