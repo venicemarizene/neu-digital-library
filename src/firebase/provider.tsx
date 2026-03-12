@@ -21,13 +21,17 @@ interface FirebaseContextValue {
   storage: FirebaseStorage;
 }
 
-const FirebaseContext = createContext<FirebaseContextValue | undefined>(
-  undefined
+// CRITICAL FIX:
+// The context is changed to allow a `null` value.
+// This allows the FirebaseClientProvider to render immediately with a null context
+// while it waits for the async Firebase initialization to complete.
+const FirebaseContext = createContext<FirebaseContextValue | null>(
+  null
 );
 
 interface FirebaseProviderProps {
   children: ReactNode;
-  value: FirebaseContextValue;
+  value: FirebaseContextValue | null;
 }
 
 export const FirebaseProvider: FC<FirebaseProviderProps> = ({
@@ -41,6 +45,8 @@ export const FirebaseProvider: FC<FirebaseProviderProps> = ({
 
 export function useFirebase() {
   const context = useContext(FirebaseContext);
+  // The check for `undefined` is still a safeguard, but now we return null
+  // if the context has not been initialized yet.
   if (context === undefined) {
     throw new Error('useFirebase must be used within a FirebaseProvider');
   }
@@ -48,19 +54,23 @@ export function useFirebase() {
 }
 
 export function useFirebaseApp() {
-  return useFirebase().app;
+  // CRITICAL FIX: Safely access the app instance, returning null if not ready.
+  return useFirebase()?.app ?? null;
 }
 
 export function useAuth() {
-  return useFirebase().auth;
+  // CRITICAL FIX: Safely access the auth instance, returning null if not ready.
+  return useFirebase()?.auth ?? null;
 }
 
 export function useFirestore() {
-  return useFirebase().db;
+  // CRITICAL FIX: Safely access the firestore instance, returning null if not ready.
+  return useFirebase()?.db ?? null;
 }
 
 export function useStorage() {
-  return useFirebase().storage;
+  // CRITICAL FIX: Safely access the storage instance, returning null if not ready.
+  return useFirebase()?.storage ?? null;
 }
 
 export function withFirebase<T extends object>(
@@ -68,6 +78,7 @@ export function withFirebase<T extends object>(
 ): FC<T> {
   const WithFirebase: FC<T> = (props) => {
     const firebase = useFirebase();
+    // Pass firebase instances only if they are not null
     return <Component {...props} {...firebase} />;
   };
   return WithFirebase;

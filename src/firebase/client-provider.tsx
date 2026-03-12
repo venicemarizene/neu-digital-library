@@ -4,31 +4,33 @@ import { ReactNode, useState, useEffect } from 'react';
 import { FirebaseProvider } from './provider';
 import { initializeFirebase, type FirebaseInstances } from './';
 import { FirebaseErrorListener } from '@/components/firebase-error-listener';
-import { Loader2 } from 'lucide-react';
 
 export function FirebaseClientProvider({ children }: { children: ReactNode }) {
+  // This state holds the Firebase instances. It starts as null.
   const [firebase, setFirebase] = useState<FirebaseInstances | null>(null);
 
+  // useEffect now runs on the client to initialize Firebase in the background.
   useEffect(() => {
-    // Initialize Firebase asynchronously to allow for persistence setup.
     const init = async () => {
       const instances = await initializeFirebase();
       setFirebase(instances);
-    }
+    };
     init();
   }, []);
 
-  if (!firebase) {
-    return (
-        <div className="flex h-screen w-full items-center justify-center bg-background">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-    );
-  }
-
+  // CRITICAL FIX:
+  // Previously, this component returned a <Loader /> if `firebase` was null.
+  // This caused a HYDRATION MISMATCH because the server would render the page content (`children`),
+  // but the initial client render would show a loader, breaking React's rules.
+  //
+  // The fix is to ALWAYS render the FirebaseProvider and its children.
+  // The `value` of the provider will be `null` until Firebase initializes.
+  // The `useFirebase` and other consumer hooks have been updated in `provider.tsx`
+  // to handle this initial null state gracefully.
   return (
     <FirebaseProvider value={firebase}>
-      <FirebaseErrorListener />
+      {/* The FirebaseErrorListener should only be active when firebase is available */}
+      {firebase && <FirebaseErrorListener />}
       {children}
     </FirebaseProvider>
   );
