@@ -26,7 +26,8 @@ export default function AnalyticsDashboard() {
   }, [period]);
 
   const { data: documents, loading: docsLoading } = useCollection<DocumentType>('Documents');
-  const { data: students, loading: studentsLoading } = useCollection<AppUser>('Users', { constraints: [where('isAdmin', '==', false)] });
+  const studentConstraints = useMemo(() => [where('isAdmin', '==', false)], []);
+  const { data: students, loading: studentsLoading } = useCollection<AppUser>('Users', { constraints: studentConstraints });
   const logConstraints = useMemo(() => {
     if (!startDate) return undefined; // Return undefined to stop the query
     return [
