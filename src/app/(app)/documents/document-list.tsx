@@ -40,16 +40,18 @@ export default function DocumentList() {
   ], []);
 
   const programSpecificConstraints = useMemo(() => {
-      if (!appUser?.program) return undefined;
+      // If program is not yet loaded, use a placeholder that won't match any documents.
+      // This ensures the query is stable and avoids conditional hook errors.
+      const program = appUser?.program || 'NO_PROGRAM';
       return [
           where('visibility', '==', 'PROGRAM_SPECIFIC'),
-          where('targetProgram', '==', appUser.program),
+          where('targetProgram', '==', program),
           orderBy('uploadedAt', 'desc')
       ];
   }, [appUser?.program]);
 
   const { data: allCicsDocs, loading: loadingAll, error: errorAll } = useCollection<DocumentType>('Documents', { constraints: allCicsConstraints, listen: true });
-  const { data: programDocs, loading: loadingProgram, error: errorProgram } = useCollection<DocumentType>('Documents', { constraints: programSpecificConstraints, listen: true, skip: !programSpecificConstraints });
+  const { data: programDocs, loading: loadingProgram, error: errorProgram } = useCollection<DocumentType>('Documents', { constraints: programSpecificConstraints, listen: true });
 
   const loading = loadingAll || loadingProgram;
 
