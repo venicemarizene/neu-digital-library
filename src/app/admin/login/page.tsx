@@ -1,6 +1,6 @@
 'use client';
 
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 import { useAuth, useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -28,24 +28,26 @@ export default function AdminLoginPage() {
   const [isSigningIn, setIsSigningIn] = useState(false);
 
   useEffect(() => {
-    // This effect will run when the user's auth state changes.
-    // If the user is logged in and is an admin, it redirects to the admin dashboard.
-    // If they are not an admin, it sends them to the student dashboard.
-    if (!userLoading && user) {
-        if (isAdmin) {
-            router.push('/admin');
-        } else {
-            // A non-admin user trying to log in via the admin page.
-            // Let's show a toast and send them to the student dashboard.
-             toast({
-                variant: 'destructive',
-                title: 'Access Denied',
-                description: "You do not have administrative privileges.",
-            });
-            router.push('/documents');
-        }
+    if (userLoading) {
+      return; // Wait for the user status to be determined
     }
-  }, [user, isAdmin, userLoading, router, toast]);
+
+    if (user) { // A user is logged in
+      if (isAdmin) {
+        // User is an admin, redirect to dashboard
+        router.push('/admin');
+      } else {
+        // User is not an admin. Show error, sign them out.
+        toast({
+            variant: 'destructive',
+            title: 'Access Denied',
+            description: "You do not have administrative privileges.",
+        });
+        signOut(auth); // This will trigger useUser to update, user becomes null, and login form is shown
+      }
+    }
+    // If !userLoading and !user, do nothing. The login form will be displayed.
+  }, [user, isAdmin, userLoading, router, toast, auth]);
 
   const handleSignIn = async () => {
     if (!auth) return;
@@ -59,14 +61,14 @@ export default function AdminLoginPage() {
     try {
         await signInWithPopup(auth, provider);
         // On success, the useUser hook will update, and the useEffect above
-        // will handle navigation.
+        // will handle navigation or sign out.
     } catch (error: any) {
         let description = 'An unexpected error occurred during sign-in.';
         
         switch (error.code) {
             case 'auth/popup-closed-by-user':
-                setIsSigningIn(false);
-                return; // Don't show toast
+                // Don't show a toast if the user closes the popup
+                break; 
             case 'auth/unauthorized-domain':
                 description = "This application's domain is not authorized for Google Sign-In. An administrator needs to add this domain to the Firebase console's list of authorized domains.";
                 break;
@@ -76,21 +78,29 @@ export default function AdminLoginPage() {
             case 'auth/popup-blocked':
                 description = "Popup blocked by browser. Please allow popups for this site to sign in.";
                 break;
+            default:
+                toast({
+                    variant: 'destructive',
+                    title: 'Authentication Error',
+                    description: description,
+                });
+                break;
         }
-
-        toast({
-            variant: 'destructive',
-            title: 'Authentication Error',
-            description: description,
-        });
+        if (error.code !== 'auth/popup-closed-by-user') {
+            toast({
+                variant: 'destructive',
+                title: 'Authentication Error',
+                description: description,
+            });
+        }
+    } finally {
         setIsSigningIn(false);
     }
   };
   
-  const loading = userLoading || isSigningIn;
-
-  // Show a loader while checking auth state or if the user is already logged in and being redirected.
-  if (userLoading || (!userLoading && user)) {
+  // A user who is logged in will be redirected by the useEffect.
+  // We only need to show a loader while the initial user state is being determined.
+  if (userLoading || (user && isAdmin)) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -119,9 +129,9 @@ export default function AdminLoginPage() {
                     </span>
                 </div>
             </div>
-          <Button onClick={handleSignIn} className="w-full" disabled={loading}>
-            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2 h-5 w-5" />}
-            {loading ? "Signing in..." : "Sign in with Google"}
+          <Button onClick={handleSignIn} className="w-full" disabled={isSigningIn}>
+            {isSigningIn ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2 h-5 w-5" />}
+            {isSigningIn ? "Signing in..." : "Sign in with Google"}
           </Button>
           <p className="mt-2 text-center text-xs text-muted-foreground">
             Only authorized administrators can access this portal.
