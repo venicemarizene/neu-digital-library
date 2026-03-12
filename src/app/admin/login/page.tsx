@@ -1,7 +1,8 @@
 'use client';
 
 import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth, useUser, useFirestore } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -23,34 +24,20 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 export default function AdminLoginPage() {
   const { user, isAdmin, loading: userLoading } = useUser();
   const auth = useAuth();
+  const db = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
   const [isSigningIn, setIsSigningIn] = useState(false);
 
   useEffect(() => {
-    if (userLoading) {
-      return; // Wait for the user status to be determined
+    // If the user is already loaded and is an admin, redirect them away from the login page.
+    if (!userLoading && user && isAdmin) {
+      router.push('/admin');
     }
-
-    if (user) { // A user is logged in
-      if (isAdmin) {
-        // User is an admin, redirect to dashboard
-        router.push('/admin');
-      } else {
-        // User is not an admin. Show error, sign them out.
-        toast({
-            variant: 'destructive',
-            title: 'Access Denied',
-            description: "You do not have administrative privileges.",
-        });
-        signOut(auth); // This will trigger useUser to update, user becomes null, and login form is shown
-      }
-    }
-    // If !userLoading and !user, do nothing. The login form will be displayed.
-  }, [user, isAdmin, userLoading, router, toast, auth]);
+  }, [user, isAdmin, userLoading, router]);
 
   const handleSignIn = async () => {
-    if (!auth) return;
+    if (!auth || !db) return;
     setIsSigningIn(true);
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({
@@ -59,15 +46,38 @@ export default function AdminLoginPage() {
     });
 
     try {
-        await signInWithPopup(auth, provider);
-        // On success, the useUser hook will update, and the useEffect above
-        // will handle navigation or sign out.
+        const result = await signInWithPopup(auth, provider);
+        const loggedInUser = result.user;
+        
+        console.log("Login success:", loggedInUser.email);
+
+        // Directly check the user's role from Firestore for immediate redirection.
+        console.log("Fetching user document...");
+        const userDocRef = doc(db, 'Users', loggedInUser.uid);
+        const userDoc = await getDoc(userDocRef);
+
+        if (userDoc.exists() && userDoc.data().isAdmin === true) {
+            const role = userDoc.data().isAdmin ? "admin" : "student";
+            console.log("User role:", role);
+            console.log("Redirecting to admin dashboard");
+            router.push('/admin');
+        } else {
+            console.log("User is not an admin or document does not exist.");
+            toast({
+                variant: 'destructive',
+                title: 'Access Denied',
+                description: "You do not have administrative privileges.",
+            });
+            await signOut(auth);
+        }
+
     } catch (error: any) {
         let description = 'An unexpected error occurred during sign-in.';
         
         switch (error.code) {
             case 'auth/popup-closed-by-user':
-                // Don't show a toast if the user closes the popup
+                description = 'Sign-in cancelled by user.';
+                // We won't show a toast for this, as it's an intentional action.
                 break; 
             case 'auth/unauthorized-domain':
                 description = "This application's domain is not authorized for Google Sign-In. An administrator needs to add this domain to the Firebase console's list of authorized domains.";
@@ -79,11 +89,7 @@ export default function AdminLoginPage() {
                 description = "Popup blocked by browser. Please allow popups for this site to sign in.";
                 break;
             default:
-                toast({
-                    variant: 'destructive',
-                    title: 'Authentication Error',
-                    description: description,
-                });
+                console.error("Authentication error:", error);
                 break;
         }
         if (error.code !== 'auth/popup-closed-by-user') {
@@ -98,9 +104,10 @@ export default function AdminLoginPage() {
     }
   };
   
-  // A user who is logged in will be redirected by the useEffect.
-  // We only need to show a loader while the initial user state is being determined.
-  if (userLoading || (user && isAdmin)) {
+  const loading = userLoading || isSigningIn;
+  
+  // If the user is already determined to be an admin, show a loader while redirecting.
+  if (!userLoading && user && isAdmin) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -129,9 +136,9 @@ export default function AdminLoginPage() {
                     </span>
                 </div>
             </div>
-          <Button onClick={handleSignIn} className="w-full" disabled={isSigningIn}>
-            {isSigningIn ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2 h-5 w-5" />}
-            {isSigningIn ? "Signing in..." : "Sign in with Google"}
+          <Button onClick={handleSignIn} className="w-full" disabled={loading}>
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2 h-5 w-5" />}
+            {loading ? "Verifying..." : "Sign in with Google"}
           </Button>
           <p className="mt-2 text-center text-xs text-muted-foreground">
             Only authorized administrators can access this portal.
