@@ -27,6 +27,7 @@ export const useUser = (): UserData => {
   const [isBlocked, setIsBlocked] = useState(false);
 
   useEffect(() => {
+    if (!auth) return;
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         if (!firebaseUser.email?.endsWith('@neu.edu.ph')) {
@@ -49,7 +50,7 @@ export const useUser = (): UserData => {
   }, [auth]);
 
   useEffect(() => {
-    if (user) {
+    if (user && db) {
       const userDocRef = doc(db, 'Users', user.uid);
       const unsubscribeFirestore = onSnapshot(
         userDocRef,

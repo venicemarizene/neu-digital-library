@@ -19,6 +19,10 @@ export function useDoc<T>(path: string, options?: UseDocOptions) {
   const [error, setError] = useState<FirestoreError | null>(null);
 
   useEffect(() => {
+    if (!db) {
+      setLoading(false);
+      return;
+    }
     const docRef = doc(db, path);
 
     const handleSnapshot = (snapshot: DocumentData) => {

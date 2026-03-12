@@ -33,7 +33,7 @@ export function useCollection<T>(
   const memoizedConstraints = useMemo(() => options?.constraints ?? [], [options?.constraints]);
 
   useEffect(() => {
-    if (options?.skip) {
+    if (options?.skip || !db) {
       setData(null);
       setLoading(false);
       return;
