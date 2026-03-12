@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { query, where, orderBy } from 'firebase/firestore';
 import { useCollection } from '@/firebase';
 import type { DownloadLog, Document as DocumentType, AppUser } from '@/lib/types';
@@ -28,30 +28,31 @@ const getStartDate = (period: Period): Date => {
 };
 
 export default function AnalyticsDashboard() {
-  // 1. All state and hook declarations are at the top.
   const [period, setPeriod] = useState<Period>('week');
-  
-  // 2. The logConstraints are now always defined and memoized.
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const logConstraints = useMemo(() => {
     const startDate = getStartDate(period);
     return [
       where('downloadedAt', '>=', startDate),
-      orderBy('downloadedAt', 'desc')
+      orderBy('downloadedAt', 'desc'),
     ];
   }, [period]);
 
-  // The studentConstraints are also memoized to prevent re-renders.
   const studentConstraints = useMemo(() => [where('isAdmin', '==', false)], []);
 
-  // 3. All data fetching hooks are called unconditionally.
   const { data: documents, loading: docsLoading } = useCollection<DocumentType>('Documents');
   const { data: students, loading: studentsLoading } = useCollection<AppUser>('Users', { constraints: studentConstraints });
   const { data: logs, loading: logsLoading } = useCollection<DownloadLog>('Logs', {
     constraints: logConstraints,
     listen: true,
+    skip: !isMounted,
   });
 
-  // 4. The loading state is determined after all hooks.
   const loading = docsLoading || logsLoading || studentsLoading;
 
   const analyticsData = useMemo(() => {
@@ -62,6 +63,7 @@ export default function AnalyticsDashboard() {
     const activityCounts: { [key: string]: { date: string, downloads: number } } = {};
 
     logs.forEach(log => {
+      if (!log.downloadedAt) return;
       const dateString = format(new Date((log.downloadedAt as any).seconds * 1000), 'yyyy-MM-dd');
       if(!activityCounts[dateString]) {
           activityCounts[dateString] = { date: dateString, downloads: 0 };
@@ -85,7 +87,6 @@ export default function AnalyticsDashboard() {
     },
   };
 
-  // 5. The early return for the loading state is after all hooks have been called.
   if (loading) {
     return (
       <div className="flex justify-center items-center h-96">

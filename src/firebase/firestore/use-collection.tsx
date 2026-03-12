@@ -2,29 +2,22 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   onSnapshot,
+  getDocs,
   collection,
   query,
-  where,
-  orderBy,
-  limit,
-  startAfter,
-  Query,
-  DocumentData,
-  FirestoreError,
   QueryConstraint,
+  FirestoreError,
+  DocumentData,
 } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 
 interface UseCollectionOptions {
   constraints?: QueryConstraint[];
-  listen?: boolean;
+  listen?: boolean; // default true
   skip?: boolean;
 }
 
-export function useCollection<T>(
-  path: string,
-  options?: UseCollectionOptions
-) {
+export function useCollection<T>(path: string, options?: UseCollectionOptions) {
   const db = useFirestore();
   const [data, setData] = useState<T[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,16 +31,14 @@ export function useCollection<T>(
       setLoading(false);
       return;
     }
-    
+
     setLoading(true);
 
     const collectionRef = collection(db, path);
     const q = query(collectionRef, ...memoizedConstraints);
 
     const handleSnapshot = (snapshot: DocumentData) => {
-      const docs = snapshot.docs.map(
-        (doc: DocumentData) => ({ id: doc.id, ...doc.data() } as T)
-      );
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T));
       setData(docs);
       setLoading(false);
     };
@@ -58,11 +49,17 @@ export function useCollection<T>(
       console.error(err);
     };
 
+    let unsubscribe: () => void = () => {};
+
     if (options?.listen === false) {
-        // One-time fetch is not implemented, defaults to listener.
+      // One-time fetch
+      getDocs(q)
+        .then(handleSnapshot)
+        .catch(handleError);
+    } else {
+      unsubscribe = onSnapshot(q, handleSnapshot, handleError);
     }
 
-    const unsubscribe = onSnapshot(q, handleSnapshot, handleError);
     return () => unsubscribe();
   }, [db, path, memoizedConstraints, options?.listen, options?.skip]);
 
