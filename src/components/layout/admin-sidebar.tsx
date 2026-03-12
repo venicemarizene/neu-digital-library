@@ -36,7 +36,7 @@ export function AdminSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className='flex-row items-center justify-between'>
-        <Logo brand="CICS" name="Portal" isDark />
+        <Logo brand="CICS" name="DocHub" isDark />
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.push('/documents')} aria-label="Switch to student view">
             <ArrowLeftRight className="h-4 w-4" />
         </Button>

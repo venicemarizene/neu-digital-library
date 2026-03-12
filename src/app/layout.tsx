@@ -5,7 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'CICS VaultConnect',
+  title: 'CICS DocHub',
   description: 'Secure document repository for the CICS department at NEU.',
 };
 

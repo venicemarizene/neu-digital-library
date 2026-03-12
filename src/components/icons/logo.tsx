@@ -2,7 +2,7 @@ import { LibraryBig } from "lucide-react";
 
 export function Logo({
   className,
-  name = "Digital Library",
+  name = "DocHub",
   brand = "CICS",
   isDark = false,
   showIcon = true,

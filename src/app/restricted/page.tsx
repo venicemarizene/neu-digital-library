@@ -26,7 +26,7 @@ export default function RestrictedPage() {
           </div>
           <CardTitle>Account Restricted</CardTitle>
           <CardDescription>
-            Your access to CICS VaultConnect has been restricted by an administrator.
+            Your access to CICS DocHub has been restricted by an administrator.
             Please contact support if you believe this is an error.
           </CardDescription>
         </CardHeader>

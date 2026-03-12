@@ -1,4 +1,4 @@
-# CICS VaultConnect
+# CICS DocHub
 
 This is a Next.js application built with Firebase Studio, designed to be a secure document repository for the CICS department at NEU.
 
