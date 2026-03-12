@@ -30,17 +30,23 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [activeTab, setActiveTab] = useState('student');
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     // If a user is already logged in and somehow lands here, redirect them.
-    if (!userLoading && user) {
+    // Ensure this only runs on the client after hydration
+    if (isClient && !userLoading && user) {
         if (isAdmin) {
             router.push('/admin');
         } else {
             router.push('/');
         }
     }
-  }, [user, isAdmin, userLoading, router]);
+  }, [user, isAdmin, userLoading, router, isClient]);
 
   const handleSignIn = async () => {
     if (!auth || !db) return;
@@ -104,8 +110,10 @@ export default function LoginPage() {
   
   const loading = userLoading || isSigningIn;
 
-  // Render a loader if authentication is in progress or if a logged-in user is being redirected.
-  if (userLoading || (!userLoading && user)) {
+  // On server, and on initial client render, `isClient` is false, so we render the loader.
+  // We also render loader if auth state is loading, or if a user is logged in (and will be redirected).
+  // This prevents a flash of the login page for logged-in users.
+  if (!isClient || loading || user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
