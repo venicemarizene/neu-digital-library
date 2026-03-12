@@ -25,7 +25,7 @@ export function AdminSidebar() {
 
   const handleSignOut = async () => {
     await signOut(auth);
-    router.push('/login');
+    router.push('/admin/login');
   };
 
   const getInitials = (name: string | null | undefined) => {

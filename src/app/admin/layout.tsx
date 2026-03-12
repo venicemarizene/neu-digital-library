@@ -17,8 +17,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
 
     if (!user) {
-      // If there's no user, they should be at the login page.
-      router.push('/login');
+      // If there's no user, they should be at the admin login page.
+      router.push('/admin/login');
     } else if (!isAdmin) {
       // If there is a user but they aren't an admin, send them away.
       router.push('/documents');

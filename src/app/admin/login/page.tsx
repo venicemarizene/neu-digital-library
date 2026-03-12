@@ -20,30 +20,32 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 
-export default function LoginPage() {
-  const { user, loading: userLoading } = useUser();
+export default function AdminLoginPage() {
+  const { user, isAdmin, loading: userLoading } = useUser();
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [isSigningIn, setIsSigningIn] = useState(false);
 
   useEffect(() => {
-    const authError = localStorage.getItem('authError');
-    if (authError === 'invalid-domain') {
-      toast({
-        variant: 'destructive',
-        title: 'Authentication Error',
-        description: "Access restricted. Please use an '@neu.edu.ph' email account.",
-      });
-      localStorage.removeItem('authError');
-    }
-  }, [toast]);
-
-  useEffect(() => {
+    // This effect will run when the user's auth state changes.
+    // If the user is logged in and is an admin, it redirects to the admin dashboard.
+    // If they are not an admin, it sends them to the student dashboard.
     if (!userLoading && user) {
-      router.push('/');
+        if (isAdmin) {
+            router.push('/admin');
+        } else {
+            // A non-admin user trying to log in via the admin page.
+            // Let's show a toast and send them to the student dashboard.
+             toast({
+                variant: 'destructive',
+                title: 'Access Denied',
+                description: "You do not have administrative privileges.",
+            });
+            router.push('/documents');
+        }
     }
-  }, [user, userLoading, router]);
+  }, [user, isAdmin, userLoading, router, toast]);
 
   const handleSignIn = async () => {
     if (!auth) return;
@@ -57,16 +59,14 @@ export default function LoginPage() {
     try {
         await signInWithPopup(auth, provider);
         // On success, the useUser hook will update, and the useEffect above
-        // will handle navigation. We don't need to set isSigningIn to false
-        // as the component will unmount.
+        // will handle navigation.
     } catch (error: any) {
         let description = 'An unexpected error occurred during sign-in.';
         
         switch (error.code) {
             case 'auth/popup-closed-by-user':
-                // Don't show an error toast if the user closes the popup
                 setIsSigningIn(false);
-                return;
+                return; // Don't show toast
             case 'auth/unauthorized-domain':
                 description = "This application's domain is not authorized for Google Sign-In. An administrator needs to add this domain to the Firebase console's list of authorized domains.";
                 break;
@@ -75,9 +75,6 @@ export default function LoginPage() {
                  break;
             case 'auth/popup-blocked':
                 description = "Popup blocked by browser. Please allow popups for this site to sign in.";
-                break;
-            case 'auth/account-exists-with-different-credential':
-                description = 'An account already exists with the same email address but different sign-in credentials.';
                 break;
         }
 
@@ -92,6 +89,7 @@ export default function LoginPage() {
   
   const loading = userLoading || isSigningIn;
 
+  // Show a loader while checking auth state or if the user is already logged in and being redirected.
   if (userLoading || (!userLoading && user)) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -107,8 +105,8 @@ export default function LoginPage() {
             <div className="rounded-full bg-primary/10 p-3">
                 <ShieldCheck className="h-10 w-10 text-primary" />
             </div>
-          <CardTitle className="font-headline text-2xl">CICS Student Hub</CardTitle>
-          <CardDescription>Institutional login required</CardDescription>
+          <CardTitle className="font-headline text-2xl">CICS Admin Portal</CardTitle>
+          <CardDescription>Administrator login required</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
            <div className="relative">
@@ -126,10 +124,10 @@ export default function LoginPage() {
             {loading ? "Signing in..." : "Sign in with Google"}
           </Button>
           <p className="mt-2 text-center text-xs text-muted-foreground">
-            Only @neu.edu.ph accounts are allowed to access this system.
+            Only authorized administrators can access this portal.
           </p>
-            <Link href="/admin/login" className="text-center text-sm text-muted-foreground hover:text-primary underline">
-                Are you an administrator?
+            <Link href="/login" className="text-center text-sm text-muted-foreground hover:text-primary underline">
+                Not an admin? Go to Student Login
             </Link>
         </CardContent>
       </Card>
