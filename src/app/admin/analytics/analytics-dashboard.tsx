@@ -31,7 +31,7 @@ export default function AnalyticsDashboard() {
   // 1. All state and hook declarations are at the top.
   const [period, setPeriod] = useState<Period>('week');
   
-  // 2. The logConstraints are now always defined because startDate is derived.
+  // 2. The logConstraints are now always defined and memoized.
   const logConstraints = useMemo(() => {
     const startDate = getStartDate(period);
     return [
@@ -40,6 +40,7 @@ export default function AnalyticsDashboard() {
     ];
   }, [period]);
 
+  // The studentConstraints are also memoized to prevent re-renders.
   const studentConstraints = useMemo(() => [where('isAdmin', '==', false)], []);
 
   // 3. All data fetching hooks are called unconditionally.
