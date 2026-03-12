@@ -3,13 +3,20 @@
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AdminSidebar } from '@/components/layout/admin-sidebar';
 import { useUser } from '@/firebase';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, isAdmin, loading } = useUser();
   const router = useRouter();
+  const pathname = usePathname();
+
+  // If we are on the login page, don't apply the protected layout.
+  // This prevents a redirect loop.
+  if (pathname === '/admin/login') {
+    return <>{children}</>;
+  }
 
   useEffect(() => {
     if (loading) {
@@ -27,7 +34,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   
   // While loading, or if the user is not an admin (and the redirect is in flight),
   // show a loading screen to prevent content flashing.
-  if (loading || !isAdmin) {
+  if (loading || !user || !isAdmin) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
