@@ -3,8 +3,8 @@
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AdminSidebar } from '@/components/layout/admin-sidebar';
 import { useUser, useFirestore } from '@/firebase';
-import { useRouter, usePathname } from 'next/navigation';
-import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -12,11 +12,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { user, isAdmin, appUser, loading } = useUser();
   const db = useFirestore();
   const router = useRouter();
-  const pathname = usePathname();
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    if (loading) {
-      return; // Wait until user status is determined
+    // This effect runs only on the client, after the component has mounted.
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    // Wait until the component has mounted and user loading is complete before running redirection logic.
+    if (!isClient || loading) {
+      return;
     }
 
     if (!user) {
@@ -42,11 +48,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       // Set the doc but don't wait for it. The useUser hook will pick up the change.
       setDoc(userDocRef, newAdminData, { merge: true });
     }
-  }, [user, isAdmin, appUser, loading, router, db]);
+  }, [user, isAdmin, appUser, loading, router, db, isClient]);
 
-  // If a user is not an admin, the useEffect above will redirect them.
-  // We show a loader while that check is happening.
-  if (loading || !user || !isAdmin) {
+  // On the server, and on the initial client render, `isClient` will be false,
+  // and `loading` from `useUser` is initially true. This ensures we render the
+  // loader consistently, avoiding a hydration mismatch.
+  if (!isClient || loading || !user || !isAdmin) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -54,7 +61,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  // Only render the admin layout for authenticated admins.
+  // Only render the admin layout for authenticated admins once we're on the client
+  // and all auth checks have passed.
   return (
     <SidebarProvider>
       <AdminSidebar />
