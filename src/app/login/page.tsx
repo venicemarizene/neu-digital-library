@@ -117,7 +117,7 @@ export default function LoginPage() {
     <main className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4 space-y-8">
         <div className="text-center space-y-2">
             <Logo className="justify-center" />
-            <p className="text-muted-foreground text-sm">Digital Repository for College of Informatics and Computing Science</p>
+            <p className="text-muted-foreground text-sm max-w-xs mx-auto">Digital Repository for College of Informatics and Computing Science</p>
         </div>
 
         <Card className="w-full max-w-sm shadow-xl p-2">
