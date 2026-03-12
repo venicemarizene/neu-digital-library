@@ -1,7 +1,7 @@
 'use client';
-import { useState, useEffect, useMemo } from 'react';
-import { collection, query, where, orderBy } from 'firebase/firestore';
-import { useFirestore, useCollection } from '@/firebase';
+import { useState, useMemo } from 'react';
+import { query, where, orderBy } from 'firebase/firestore';
+import { useCollection } from '@/firebase';
 import type { DownloadLog, Document as DocumentType, AppUser } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer } from 'recharts';
@@ -12,37 +12,46 @@ import { subDays, startOfDay, format } from 'date-fns';
 
 type Period = 'day' | 'week' | 'month';
 
+// Helper to calculate the start date based on the period
+const getStartDate = (period: Period): Date => {
+  const now = new Date();
+  switch (period) {
+    case 'day':
+      return startOfDay(now);
+    case 'week':
+      return subDays(now, 7);
+    case 'month':
+      return subDays(now, 30);
+    default:
+      return subDays(now, 7);
+  }
+};
+
 export default function AnalyticsDashboard() {
+  // 1. All state and hook declarations are at the top.
   const [period, setPeriod] = useState<Period>('week');
-  const [startDate, setStartDate] = useState<Date | undefined>();
-
-  useEffect(() => {
-    const now = new Date();
-    if (period === 'day') {
-      setStartDate(startOfDay(now));
-    } else {
-      setStartDate(subDays(now, period === 'week' ? 7 : 30));
-    }
-  }, [period]);
-
-  const { data: documents, loading: docsLoading } = useCollection<DocumentType>('Documents');
-  const studentConstraints = useMemo(() => [where('isAdmin', '==', false)], []);
-  const { data: students, loading: studentsLoading } = useCollection<AppUser>('Users', { constraints: studentConstraints });
+  
+  // 2. The logConstraints are now always defined because startDate is derived.
   const logConstraints = useMemo(() => {
-    if (!startDate) return undefined; // Return undefined to stop the query
+    const startDate = getStartDate(period);
     return [
       where('downloadedAt', '>=', startDate),
       orderBy('downloadedAt', 'desc')
-    ]
-  }, [startDate]);
+    ];
+  }, [period]);
+
+  const studentConstraints = useMemo(() => [where('isAdmin', '==', false)], []);
+
+  // 3. All data fetching hooks are called unconditionally.
+  const { data: documents, loading: docsLoading } = useCollection<DocumentType>('Documents');
+  const { data: students, loading: studentsLoading } = useCollection<AppUser>('Users', { constraints: studentConstraints });
   const { data: logs, loading: logsLoading } = useCollection<DownloadLog>('Logs', {
     constraints: logConstraints,
     listen: true,
-    skip: !logConstraints
   });
 
-
-  const loading = !startDate || docsLoading || logsLoading || studentsLoading;
+  // 4. The loading state is determined after all hooks.
+  const loading = docsLoading || logsLoading || studentsLoading;
 
   const analyticsData = useMemo(() => {
     if (!logs || logs.length === 0) {
@@ -52,7 +61,7 @@ export default function AnalyticsDashboard() {
     const activityCounts: { [key: string]: { date: string, downloads: number } } = {};
 
     logs.forEach(log => {
-      const dateString = format(new Date(log.downloadedAt.seconds * 1000), 'yyyy-MM-dd');
+      const dateString = format(new Date((log.downloadedAt as any).seconds * 1000), 'yyyy-MM-dd');
       if(!activityCounts[dateString]) {
           activityCounts[dateString] = { date: dateString, downloads: 0 };
       }
@@ -75,6 +84,7 @@ export default function AnalyticsDashboard() {
     },
   };
 
+  // 5. The early return for the loading state is after all hooks have been called.
   if (loading) {
     return (
       <div className="flex justify-center items-center h-96">
