@@ -10,7 +10,12 @@ export function FirebaseClientProvider({ children }: { children: ReactNode }) {
   const [firebase, setFirebase] = useState<FirebaseInstances | null>(null);
 
   useEffect(() => {
-    setFirebase(initializeFirebase());
+    // Initialize Firebase asynchronously to allow for persistence setup.
+    const init = async () => {
+      const instances = await initializeFirebase();
+      setFirebase(instances);
+    }
+    init();
   }, []);
 
   if (!firebase) {
