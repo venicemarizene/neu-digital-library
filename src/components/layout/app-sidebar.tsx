@@ -34,10 +34,10 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader>
+      <SidebarHeader className="pt-4 mb-4">
         <Logo brand="CICS" name="Digital Library" isDark />
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="px-2">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
