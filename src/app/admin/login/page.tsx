@@ -57,10 +57,10 @@ export default function AdminLoginPage() {
         const userDoc = await getDoc(userDocRef);
 
         if (userDoc.exists() && userDoc.data().isAdmin === true) {
-            const role = userDoc.data().isAdmin ? "admin" : "student";
-            console.log("User role:", role);
+            console.log("User role: admin");
             console.log("Redirecting to admin dashboard");
             router.push('/admin');
+            // Do not set isSigningIn to false here, as the component will unmount.
         } else {
             console.log("User is not an admin or document does not exist.");
             toast({
@@ -69,6 +69,7 @@ export default function AdminLoginPage() {
                 description: "You do not have administrative privileges.",
             });
             await signOut(auth);
+            setIsSigningIn(false);
         }
 
     } catch (error: any) {
@@ -77,7 +78,6 @@ export default function AdminLoginPage() {
         switch (error.code) {
             case 'auth/popup-closed-by-user':
                 description = 'Sign-in cancelled by user.';
-                // We won't show a toast for this, as it's an intentional action.
                 break; 
             case 'auth/unauthorized-domain':
                 description = "This application's domain is not authorized for Google Sign-In. An administrator needs to add this domain to the Firebase console's list of authorized domains.";
@@ -99,7 +99,6 @@ export default function AdminLoginPage() {
                 description: description,
             });
         }
-    } finally {
         setIsSigningIn(false);
     }
   };
