@@ -37,7 +37,7 @@ export function AppSidebar() {
       <SidebarHeader className="pt-4 mb-4 px-2">
         <div>
           <Logo brand="CICS" name="Digital Library" isDark />
-          <p className="text-xs font-medium text-sidebar-foreground/70 ml-11 -mt-1 tracking-wider">
+          <p className="text-sm font-medium text-sidebar-foreground/70 ml-11 tracking-wider">
             Student
           </p>
         </div>
