@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import { useFirestore, useCollection } from '@/firebase';
-import type { DownloadLog, Document as DocumentType } from '@/lib/types';
+import type { DownloadLog, Document as DocumentType, AppUser } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
@@ -26,6 +26,7 @@ export default function AnalyticsDashboard() {
   }, [period]);
 
   const { data: documents, loading: docsLoading } = useCollection<DocumentType>('Documents');
+  const { data: students, loading: studentsLoading } = useCollection<AppUser>('Users', { constraints: [where('isAdmin', '==', false)] });
   const logConstraints = useMemo(() => {
     if (!startDate) return undefined; // Return undefined to stop the query
     return [
@@ -39,7 +40,7 @@ export default function AnalyticsDashboard() {
   });
 
 
-  const loading = !startDate || docsLoading || logsLoading;
+  const loading = !startDate || docsLoading || logsLoading || studentsLoading;
 
   const analyticsData = useMemo(() => {
     if (!logs || logs.length === 0) {
@@ -95,12 +96,12 @@ export default function AnalyticsDashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Logins</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,204</div>
-            <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+            <div className="text-2xl font-bold">{students?.length ?? 0}</div>
+            <p className="text-xs text-muted-foreground">Total registered students</p>
           </CardContent>
         </Card>
          <Card>

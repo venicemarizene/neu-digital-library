@@ -5,8 +5,8 @@ export default function AdminDocumentsPage() {
   return (
     <div className="flex flex-1 flex-col">
       <PageHeader
-        title="Manage Documents"
-        description="Upload new documents and manage existing ones."
+        title="Document Management"
+        description="Upload new documents and manage existing ones in the library."
       />
       <main className="flex-1 p-4 sm:p-6 md:p-8">
         <DocumentManager />
