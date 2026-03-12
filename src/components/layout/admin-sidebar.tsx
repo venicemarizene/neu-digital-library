@@ -25,7 +25,7 @@ export function AdminSidebar() {
 
   const handleSignOut = async () => {
     await signOut(auth);
-    router.push('/admin/login');
+    router.push('/login');
   };
 
   const getInitials = (name: string | null | undefined) => {
@@ -76,7 +76,7 @@ export function AdminSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="flex-col !items-start gap-4">
-        <div className="flex w-full items-center gap-3 px-2 overflow-hidden">
+        <div className="flex w-full items-center gap-3 px-2">
             <Avatar className="h-9 w-9">
               <AvatarImage src={appUser?.photoURL ?? undefined} alt={appUser?.displayName ?? 'Admin'} />
               <AvatarFallback>{getInitials(appUser?.displayName)}</AvatarFallback>

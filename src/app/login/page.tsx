@@ -1,14 +1,16 @@
 'use client';
 
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { useAuth, useUser } from '@/firebase';
+import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { useAuth, useUser, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, ShieldCheck } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Loader2, User, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import Link from 'next/link';
+import { Logo } from '@/components/icons/logo';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg viewBox="0 0 48 48" {...props}>
@@ -21,32 +23,27 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 
 export default function LoginPage() {
-  const { user, loading: userLoading } = useUser();
+  const { user, isAdmin, loading: userLoading } = useUser();
   const auth = useAuth();
+  const db = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [activeTab, setActiveTab] = useState('student');
 
   useEffect(() => {
-    const authError = localStorage.getItem('authError');
-    if (authError === 'invalid-domain') {
-      toast({
-        variant: 'destructive',
-        title: 'Authentication Error',
-        description: "Access restricted. Please use an '@neu.edu.ph' email account.",
-      });
-      localStorage.removeItem('authError');
-    }
-  }, [toast]);
-
-  useEffect(() => {
+    // If a user is already logged in and somehow lands here, redirect them.
     if (!userLoading && user) {
-      router.push('/');
+        if (isAdmin) {
+            router.push('/admin');
+        } else {
+            router.push('/');
+        }
     }
-  }, [user, userLoading, router]);
+  }, [user, isAdmin, userLoading, router]);
 
   const handleSignIn = async () => {
-    if (!auth) return;
+    if (!auth || !db) return;
     setIsSigningIn(true);
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({
@@ -55,43 +52,59 @@ export default function LoginPage() {
     });
 
     try {
-        await signInWithPopup(auth, provider);
-        // On success, the useUser hook will update, and the useEffect above
-        // will handle navigation. We don't need to set isSigningIn to false
-        // as the component will unmount.
+        const result = await signInWithPopup(auth, provider);
+        const loggedInUser = result.user;
+        
+        if (activeTab === 'admin') {
+            const userDocRef = doc(db, 'Users', loggedInUser.uid);
+            const userDoc = await getDoc(userDocRef);
+
+            if (userDoc.exists() && userDoc.data().isAdmin === true) {
+                router.push('/admin'); // Imperative redirect for admin
+            } else {
+                toast({
+                    variant: 'destructive',
+                    title: 'Access Denied',
+                    description: "You do not have administrative privileges.",
+                });
+                await signOut(auth);
+                setIsSigningIn(false);
+            }
+        } else { // Student login
+             router.push('/'); // Redirect to root, which will handle onboarding or dashboard
+        }
+
     } catch (error: any) {
         let description = 'An unexpected error occurred during sign-in.';
         
-        switch (error.code) {
-            case 'auth/popup-closed-by-user':
-                // Don't show an error toast if the user closes the popup
-                setIsSigningIn(false);
-                return;
-            case 'auth/unauthorized-domain':
-                description = "This application's domain is not authorized for Google Sign-In. An administrator needs to add this domain to the Firebase console's list of authorized domains.";
-                break;
-            case 'auth/operation-not-allowed':
-                 description = "Access restricted. Please use an 'neu.edu.ph' email account.";
-                 break;
-            case 'auth/popup-blocked':
-                description = "Popup blocked by browser. Please allow popups for this site to sign in.";
-                break;
-            case 'auth/account-exists-with-different-credential':
-                description = 'An account already exists with the same email address but different sign-in credentials.';
-                break;
+        if (error.code !== 'auth/popup-closed-by-user') {
+            switch (error.code) {
+                case 'auth/unauthorized-domain':
+                    description = "This app's domain isn't authorized. Contact an admin.";
+                    break;
+                case 'auth/operation-not-allowed':
+                    description = "Access restricted. Please use an '@neu.edu.ph' email.";
+                    break;
+                case 'auth/popup-blocked':
+                    description = "Popup blocked. Please allow popups for this site.";
+                    break;
+                default:
+                    console.error("Authentication error:", error);
+                    break;
+            }
+            toast({
+                variant: 'destructive',
+                title: 'Authentication Error',
+                description: description,
+            });
         }
-
-        toast({
-            variant: 'destructive',
-            title: 'Authentication Error',
-            description: description,
-        });
         setIsSigningIn(false);
     }
   };
   
   const loading = userLoading || isSigningIn;
 
+  // Render a loader if authentication is in progress or if a logged-in user is being redirected.
   if (userLoading || (!userLoading && user)) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -101,38 +114,36 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen w-full items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-sm shadow-xl">
-        <CardHeader className="text-center items-center">
-            <div className="rounded-full bg-primary/10 p-3">
-                <ShieldCheck className="h-10 w-10 text-primary" />
-            </div>
-          <CardTitle className="font-headline text-2xl">CICS Student Hub</CardTitle>
-          <CardDescription>Institutional login required</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-           <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">
-                    Sign in with your institutional account
-                    </span>
-                </div>
-            </div>
-          <Button onClick={handleSignIn} className="w-full" disabled={loading}>
-            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2 h-5 w-5" />}
-            {loading ? "Signing in..." : "Sign in with Google"}
-          </Button>
-          <p className="mt-2 text-center text-xs text-muted-foreground">
-            Only @neu.edu.ph accounts are allowed to access this system.
-          </p>
-            <Link href="/admin/login" className="text-center text-sm text-muted-foreground hover:text-primary underline">
-                Are you an administrator?
-            </Link>
-        </CardContent>
-      </Card>
+    <main className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4 space-y-8">
+        <div className="text-center space-y-2">
+            <Logo className="justify-center" />
+            <p className="text-muted-foreground text-sm">Institutional Document Repository</p>
+        </div>
+
+        <Card className="w-full max-w-sm shadow-xl p-2">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="student">
+                        <User className="mr-2" />
+                        Student
+                    </TabsTrigger>
+                    <TabsTrigger value="admin">
+                        <ShieldCheck className="mr-2" />
+                        Admin
+                    </TabsTrigger>
+                </TabsList>
+            </Tabs>
+
+            <CardContent className="pt-6 flex flex-col gap-4">
+                <Button onClick={handleSignIn} className="w-full" disabled={loading}>
+                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2 h-5 w-5" />}
+                    {loading ? "Verifying..." : "Sign in with Google"}
+                </Button>
+                <p className="px-4 text-center text-xs text-muted-foreground">
+                    Institutional @neu.edu.ph domain enforced.
+                </p>
+            </CardContent>
+        </Card>
     </main>
   );
 }

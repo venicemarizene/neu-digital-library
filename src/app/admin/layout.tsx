@@ -12,25 +12,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const pathname = usePathname();
 
-  // If we are on the login page, don't apply the protected layout.
-  // This prevents a redirect loop.
-  if (pathname === '/admin/login') {
-    return <>{children}</>;
-  }
-
   useEffect(() => {
     if (loading) {
       return; // Wait until user status is determined
     }
 
     if (!user) {
-      // If there's no user, they should be at the admin login page.
-      router.push('/admin/login');
+      // If there's no user, they should be at the main login page.
+      router.push('/login');
     } else if (!isAdmin) {
       // If there is a user but they aren't an admin, send them away.
       router.push('/documents');
     }
-  }, [user, isAdmin, loading, router]);
+  }, [user, isAdmin, loading, router, pathname]);
   
   // While loading, or if the user is not an admin (and the redirect is in flight),
   // show a loading screen to prevent content flashing.
