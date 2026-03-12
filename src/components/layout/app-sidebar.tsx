@@ -15,12 +15,13 @@ import { Logo } from '@/components/icons/logo';
 import { signOut } from 'firebase/auth';
 import { useAuth, useUser } from '@/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
-  const { appUser } = useUser();
+  const { appUser, loading } = useUser();
 
   const handleSignOut = async () => {
     await signOut(auth);
@@ -67,6 +68,15 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="flex-col !items-start gap-4">
+        {loading ? (
+           <div className="flex w-full items-center gap-3 px-2">
+             <Skeleton className="h-9 w-9 rounded-full" />
+             <div className="flex-1 space-y-1">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-full" />
+             </div>
+           </div>
+        ) : (
         <div className="flex w-full items-center gap-3 px-2 overflow-hidden">
             <Avatar className="h-9 w-9">
               <AvatarImage src={appUser?.photoURL ?? undefined} alt={appUser?.displayName ?? 'User'} />
@@ -77,6 +87,7 @@ export function AppSidebar() {
                 <span className="text-xs text-sidebar-foreground/80 break-all">{appUser?.email}</span>
             </div>
         </div>
+        )}
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={handleSignOut} tooltip="Sign Out">
