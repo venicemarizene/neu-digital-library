@@ -5,7 +5,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import type { AppUser } from '@/lib/types';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Form,
   FormControl,
@@ -50,7 +49,9 @@ export function ProfileForm({ user }: { user: AppUser }) {
             <FormItem>
               <FormLabel>Program</FormLabel>
                 <FormControl>
-                    <Textarea {...field} disabled readOnly className="resize-none" />
+                    <div className="flex min-h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm opacity-50 cursor-not-allowed">
+                        <p className="break-words">{field.value}</p>
+                    </div>
                 </FormControl>
             </FormItem>
           )}
