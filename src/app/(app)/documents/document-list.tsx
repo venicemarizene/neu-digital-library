@@ -30,7 +30,10 @@ export default function DocumentList() {
   const { user, appUser, isBlocked } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
-  
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [downloading, setDownloading] = useState<string | null>(null);
+
   const allCicsConstraints = useMemo(() => [
     where('visibility', '==', 'ALL_CICS'),
     orderBy('uploadedAt', 'desc')
@@ -49,10 +52,6 @@ export default function DocumentList() {
   const { data: programDocs, loading: loadingProgram, error: errorProgram } = useCollection<DocumentType>('Documents', { constraints: programSpecificConstraints, listen: true, skip: !programSpecificConstraints });
 
   const loading = loadingAll || loadingProgram;
-
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeCategory, setActiveCategory] = useState('All');
-  const [downloading, setDownloading] = useState<string | null>(null);
 
   const allDocuments = useMemo(() => {
     const firestoreDocs = [...(allCicsDocs || []), ...(programDocs || [])];
