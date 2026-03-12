@@ -14,6 +14,8 @@ interface UserData {
   isBlocked: boolean;
 }
 
+const ADMIN_EMAIL = 'venicemarizene.linga@neu.edu.ph';
+
 export const useUser = (): UserData => {
   const auth = useAuth();
   const db = useFirestore();
@@ -27,7 +29,10 @@ export const useUser = (): UserData => {
   const [isBlocked, setIsBlocked] = useState(false);
 
   useEffect(() => {
-    if (!auth) return;
+    if (!auth) {
+      setLoading(false);
+      return;
+    };
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         if (!firebaseUser.email?.endsWith('@neu.edu.ph')) {
@@ -50,40 +55,44 @@ export const useUser = (): UserData => {
   }, [auth]);
 
   useEffect(() => {
-    if (user && db) {
-      const userDocRef = doc(db, 'Users', user.uid);
-      const unsubscribeFirestore = onSnapshot(
-        userDocRef,
-        (docSnap) => {
-          if (docSnap.exists()) {
-            const userData = {
-              uid: docSnap.id,
-              ...docSnap.data(),
-            } as AppUser;
-            setAppUser(userData);
-            setIsProfileComplete(userData.onboardingComplete || false);
-            setIsAdmin(userData.isAdmin || false);
-            setIsBlocked(userData.isBlocked || false);
-          } else {
-            // This is a new user who hasn't completed onboarding.
-            setAppUser(null);
-            setIsProfileComplete(false);
-            setIsAdmin(false);
-            setIsBlocked(false);
-          }
-          setLoading(false);
-        },
-        (error) => {
-          console.error('Error listening to user document:', error);
+    if (!user || !db) {
+      if (!user) setLoading(false);
+      return;
+    }
+    const userDocRef = doc(db, 'Users', user.uid);
+    const unsubscribeFirestore = onSnapshot(
+      userDocRef,
+      (docSnap) => {
+        const isDesignatedAdmin = user.email === ADMIN_EMAIL;
+        if (docSnap.exists()) {
+          const userData = {
+            uid: docSnap.id,
+            ...docSnap.data(),
+          } as AppUser;
+          setAppUser(userData);
+          setIsProfileComplete(userData.onboardingComplete || false);
+          setIsAdmin(userData.isAdmin || isDesignatedAdmin);
+          setIsBlocked(userData.isBlocked || false);
+        } else {
+          // This is a new user who hasn't completed onboarding.
           setAppUser(null);
           setIsProfileComplete(false);
-          setIsAdmin(false);
+          // Still grant admin status if they are the designated admin.
+          setIsAdmin(isDesignatedAdmin);
           setIsBlocked(false);
-          setLoading(false);
         }
-      );
-      return () => unsubscribeFirestore();
-    }
+        setLoading(false);
+      },
+      (error) => {
+        console.error('Error listening to user document:', error);
+        setAppUser(null);
+        setIsProfileComplete(false);
+        setIsAdmin(false);
+        setIsBlocked(false);
+        setLoading(false);
+      }
+    );
+    return () => unsubscribeFirestore();
   }, [user, db]);
 
   return { user, appUser, loading, isProfileComplete, isAdmin, isBlocked };

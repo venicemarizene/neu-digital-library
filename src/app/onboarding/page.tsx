@@ -22,6 +22,8 @@ const programs = [
   'Bachelor of Science in Information System (BSIS)',
 ];
 
+const ADMIN_EMAIL = 'venicemarizene.linga@neu.edu.ph';
+
 export default function OnboardingPage() {
   const { user, loading, isProfileComplete } = useUser();
   const db = useFirestore();
@@ -37,7 +39,7 @@ export default function OnboardingPage() {
   }, [loading, isProfileComplete, router]);
 
   const handleSubmit = () => {
-    if (!user) {
+    if (!user || !db) {
       toast({ variant: 'destructive', title: 'Error', description: 'You are not logged in.' });
       router.push('/login');
       return;
@@ -55,7 +57,7 @@ export default function OnboardingPage() {
       displayName: user.displayName,
       photoURL: user.photoURL,
       program: program,
-      isAdmin: false,
+      isAdmin: user.email === ADMIN_EMAIL,
       isBlocked: false,
       onboardingComplete: true,
       createdAt: serverTimestamp(),
