@@ -36,7 +36,8 @@ export default function AnalyticsDashboard() {
   }, [startDate]);
   const { data: logs, loading: logsLoading } = useCollection<DownloadLog>('Logs', {
     constraints: logConstraints,
-    listen: true
+    listen: true,
+    skip: !logConstraints
   });
 
 
