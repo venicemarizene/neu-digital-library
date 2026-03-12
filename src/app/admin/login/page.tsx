@@ -21,6 +21,7 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     </svg>
 );
 
+const ADMIN_EMAIL = 'venicemarizene.linga@neu.edu.ph';
 
 export default function LoginPage() {
   const { user, isAdmin, loading: userLoading } = useUser();
@@ -65,7 +66,14 @@ export default function LoginPage() {
             const userDocRef = doc(db, 'Users', loggedInUser.uid);
             const userDoc = await getDoc(userDocRef);
 
-            if (userDoc.exists() && userDoc.data().isAdmin === true) {
+            // An admin can be defined by the isAdmin field in their user document
+            // OR by having the hardcoded admin email address.
+            // This check is necessary to allow the first-time login of the hardcoded admin,
+            // as their user document won't exist yet.
+            const isHardcodedAdmin = loggedInUser.email === ADMIN_EMAIL;
+            const isDbAdmin = userDoc.exists() && userDoc.data().isAdmin === true;
+
+            if (isHardcodedAdmin || isDbAdmin) {
                 router.push('/admin'); // Imperative redirect for admin
             } else {
                 toast({
