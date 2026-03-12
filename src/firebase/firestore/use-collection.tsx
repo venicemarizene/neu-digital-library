@@ -30,16 +30,10 @@ export function useCollection<T>(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<FirestoreError | null>(null);
 
-  const memoizedConstraints = useMemo(() => options?.constraints, [options?.constraints]);
+  const memoizedConstraints = useMemo(() => options?.constraints ?? [], [options?.constraints]);
 
   useEffect(() => {
     if (options?.skip) {
-      setData(null);
-      setLoading(false);
-      return;
-    }
-
-    if (memoizedConstraints === undefined) {
       setData(null);
       setLoading(false);
       return;
@@ -48,7 +42,7 @@ export function useCollection<T>(
     setLoading(true);
 
     const collectionRef = collection(db, path);
-    const q = query(collectionRef, ...(memoizedConstraints || []));
+    const q = query(collectionRef, ...memoizedConstraints);
 
     const handleSnapshot = (snapshot: DocumentData) => {
       const docs = snapshot.docs.map(
