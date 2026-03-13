@@ -7,16 +7,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, FileText, Download, Users, Calendar as CalendarIcon, HardDrive } from 'lucide-react';
+import { Loader2, Download, Users, HardDrive } from 'lucide-react';
 import { subDays, startOfDay, format, endOfDay, addDays } from 'date-fns';
-import { DateRange } from 'react-day-picker';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { Calendar } from '@/components/ui/calendar';
-
+import { Input } from '@/components/ui/input';
 
 type Period = 'day' | 'week' | 'month' | 'custom';
+
+// Removed dependency on 'react-day-picker' by defining DateRange locally.
+type DateRange = {
+    from: Date;
+    to?: Date;
+};
 
 export default function AnalyticsDashboard() {
   const [period, setPeriod] = useState<Period>('week');
@@ -134,47 +135,42 @@ export default function AnalyticsDashboard() {
 
   return (
     <div className="space-y-6">
-       {/* UI for selecting the date range (custom, daily, weekly, monthly) */}
-       <div className="flex flex-col sm:flex-row justify-end gap-2">
-            <Popover>
-                <PopoverTrigger asChild>
-                    <Button
-                        id="date"
-                        variant={"outline"}
-                        className={cn(
-                            "w-full sm:w-[260px] justify-start text-left font-normal",
-                            !date && "text-muted-foreground"
-                        )}
-                    >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date?.from ? (
-                            date.to ? (
-                            <>
-                                {format(date.from, "LLL dd, y")} -{" "}
-                                {format(date.to, "LLL dd, y")}
-                            </>
-                            ) : (
-                            format(date.from, "LLL dd, y")
-                            )
-                        ) : (
-                            <span>Pick a date range</span>
-                        )}
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar
-                        initialFocus
-                        mode="range"
-                        defaultMonth={date?.from}
-                        selected={date}
-                        onSelect={(range) => {
-                            setDate(range);
+       {/* Simplified UI for selecting the date range with simple date inputs. */}
+       <div className="flex flex-col sm:flex-row justify-end items-end gap-4">
+            <div className="grid gap-2 w-full sm:w-auto">
+                <label htmlFor="start-date" className="text-sm font-medium text-muted-foreground">Start Date</label>
+                <Input
+                    id="start-date"
+                    type="date"
+                    value={date?.from ? format(date.from, 'yyyy-MM-dd') : ''}
+                    onChange={(e) => {
+                        if(e.target.value) {
+                            // Using new Date with a 'T00:00:00' suffix ensures the date is parsed in the user's local timezone.
+                            const fromDate = new Date(e.target.value + 'T00:00:00');
+                            setDate(prev => ({ from: fromDate, to: prev?.to }));
                             setPeriod('custom');
-                        }}
-                        numberOfMonths={2}
-                    />
-                </PopoverContent>
-            </Popover>
+                        }
+                    }}
+                    className="w-full sm:w-auto"
+                />
+            </div>
+            <div className="grid gap-2 w-full sm:w-auto">
+                <label htmlFor="end-date" className="text-sm font-medium text-muted-foreground">End Date</label>
+                <Input
+                    id="end-date"
+                    type="date"
+                    value={date?.to ? format(date.to, 'yyyy-MM-dd') : ''}
+                    onChange={(e) => {
+                        if(e.target.value) {
+                             // Using new Date with a 'T00:00:00' suffix ensures the date is parsed in the user's local timezone.
+                            const toDate = new Date(e.target.value + 'T00:00:00');
+                            setDate(prev => ({ from: prev?.from, to: toDate }));
+                            setPeriod('custom');
+                        }
+                    }}
+                    className="w-full sm:w-auto"
+                />
+            </div>
             <Tabs value={period} onValueChange={(v) => { if (v !== 'custom') setPeriod(v as Period)}}>
                 <TabsList className="w-full sm:w-auto grid grid-cols-3">
                     <TabsTrigger value="day">Daily</TabsTrigger>
