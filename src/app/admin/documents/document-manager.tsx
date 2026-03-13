@@ -17,7 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Trash2, Upload, FileText, Globe, Users, Eye } from 'lucide-react';
+import { Loader2, Trash2, Upload, FileText, Globe, Users, Eye, Download, Search } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 const programs = [
@@ -30,6 +30,8 @@ const programs = [
 ];
 
 const docCategories = ['Curriculum', 'Form', 'Manual', 'Guide', 'Academic'];
+const allDocCategories = ['All', ...docCategories];
+
 
 const documentSchema = z.object({
   file: z.instanceof(FileList).refine(files => files?.length === 1, 'File is required.'),
@@ -64,12 +66,26 @@ export default function DocumentManager() {
   const db = useFirestore();
   const storage = useStorage();
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [programFilter, setProgramFilter] = useState('ALL');
+  const [downloading, setDownloading] = useState<string | null>(null);
+
+  const programFilterOptions = useMemo(() => [
+    { label: "All Programs", value: "ALL" },
+    { label: "All CICS (General)", value: "ALL_CICS" },
+    ...programs.map(p => ({
+        label: p.match(/\(([^)]+)\)/)?.[1] || p,
+        value: p
+    }))
+  ], []);
+
   const documentConstraints = useMemo(() => [orderBy('uploadedAt', 'desc')], []);
   const { data: firestoreDocs, loading } = useCollection<DocumentType>('Documents', {
     constraints: documentConstraints,
     listen: true,
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const allDocuments = useMemo(() => {
     const existingFilenames = new Set(firestoreDocs?.map(d => d.filename) || []);
@@ -77,6 +93,29 @@ export default function DocumentManager() {
     
     return [...documentsToAdd, ...(firestoreDocs || [])].sort((a, b) => (b.uploadedAt as any) - (a.uploadedAt as any));
   }, [firestoreDocs]);
+  
+  const filteredDocuments = useMemo(() => {
+    let docs = allDocuments;
+
+    if (activeCategory !== 'All') {
+        docs = docs.filter(doc => doc.category === activeCategory);
+    }
+    
+    if (programFilter === 'ALL_CICS') {
+        docs = docs.filter(doc => doc.visibility === 'ALL_CICS');
+    } else if (programFilter !== 'ALL') {
+        docs = docs.filter(doc => doc.targetProgram === programFilter);
+    }
+
+    if (searchTerm) {
+        docs = docs.filter(doc =>
+            doc.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            doc.description?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }
+
+    return docs;
+  }, [allDocuments, activeCategory, programFilter, searchTerm]);
 
   const form = useForm<z.infer<typeof documentSchema>>({
     resolver: zodResolver(documentSchema),
@@ -137,6 +176,30 @@ export default function DocumentManager() {
     }
     window.open(doc.downloadURL, '_blank');
   };
+  
+  const handleDownload = async (doc: DocumentType) => {
+    if (doc.id.startsWith('mock-')) {
+        toast({ variant: 'default', title: 'Sample Document', description: 'This is a sample document for demonstration purposes.' });
+        return;
+    }
+    setDownloading(doc.id);
+    try {
+      const link = document.createElement('a');
+      link.href = doc.downloadURL;
+      link.target = '_blank';
+      link.download = doc.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      toast({ variant: 'destructive', title: 'Download Failed', description: 'Could not download the file. Please try again.' });
+    } finally {
+      setDownloading(null);
+    }
+  };
+
 
   const handleDelete = async (docToDelete: DocumentType) => {
     if (docToDelete.id.startsWith('mock-')) {
@@ -291,13 +354,47 @@ export default function DocumentManager() {
             <CardTitle>Existing Documents</CardTitle>
           </CardHeader>
           <CardContent>
+            <div className="flex flex-col gap-4 mb-6">
+                <div className="flex flex-col md:flex-row gap-4">
+                    <div className="relative flex-grow">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        <Input
+                            type="search"
+                            placeholder="Search by file, description..."
+                            className="w-full pl-10"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <Select value={programFilter} onValueChange={setProgramFilter}>
+                        <SelectTrigger className="w-full md:w-[240px]">
+                            <SelectValue placeholder="Filter by program..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {programFilterOptions.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                    {allDocCategories.map(cat => (
+                        <Button key={cat} variant={activeCategory === cat ? 'default' : 'outline'} onClick={() => setActiveCategory(cat)}>
+                            {cat}
+                        </Button>
+                    ))}
+                </div>
+            </div>
+
             {loading ? (
               <div className="flex justify-center items-center h-48">
                   <Loader2 className="h-8 w-8 animate-spin" />
               </div>
-            ) : allDocuments && allDocuments.length > 0 ? (
+            ) : filteredDocuments.length > 0 ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {allDocuments.map((doc) => (
+                    {filteredDocuments.map((doc) => (
                         <Card key={doc.id} className="flex flex-col transition-all hover:shadow-lg">
                             <CardHeader>
                                 <div className="flex items-start justify-between gap-2">
@@ -323,14 +420,22 @@ export default function DocumentManager() {
                                     Uploaded: {doc.uploadedAt ? format(doc.uploadedAt.toDate(), 'yyyy-MM-dd') : 'N/A'}
                                 </p>
                             </CardContent>
-                            <CardFooter className="grid grid-cols-2 gap-2 mt-auto">
-                                <Button variant="outline" onClick={() => handleView(doc as DocumentType)}>
-                                    <Eye className="mr-2" /> View
+                            <CardFooter className="grid grid-cols-3 gap-2 mt-auto">
+                                <Button size="sm" variant="outline" onClick={() => handleView(doc as DocumentType)}>
+                                    <Eye className="mr-2 h-4 w-4" /> View
+                                </Button>
+                                <Button size="sm" onClick={() => handleDownload(doc as DocumentType)} disabled={downloading === doc.id}>
+                                  {downloading === doc.id ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Download className="mr-2 h-4 w-4" />
+                                  )}
+                                  {downloading === doc.id ? '' : 'Download'}
                                 </Button>
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                        <Button variant="outline" className="w-full border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive" disabled={doc.id.startsWith('mock-')} >
-                                            <Trash2 className="mr-2" /> Delete
+                                        <Button size="sm" variant="outline" className="w-full border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive" disabled={doc.id.startsWith('mock-')} >
+                                            <Trash2 className="mr-2 h-4 w-4" /> Delete
                                         </Button>
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>
@@ -359,9 +464,9 @@ export default function DocumentManager() {
             ) : (
                 <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/50 p-12 text-center">
                     <FileText className="h-12 w-12 text-muted-foreground" />
-                    <h3 className="mt-4 text-lg font-semibold">No Documents Uploaded</h3>
+                    <h3 className="mt-4 text-lg font-semibold">No Documents Found</h3>
                     <p className="mt-2 text-sm text-muted-foreground">
-                        Use the form to upload the first document.
+                        Try adjusting your search or filters.
                     </p>
                 </div>
             )}
