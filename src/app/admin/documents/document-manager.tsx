@@ -12,9 +12,8 @@ import { format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
@@ -297,67 +296,66 @@ export default function DocumentManager() {
                   <Loader2 className="h-8 w-8 animate-spin" />
               </div>
             ) : allDocuments && allDocuments.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[30%]">Document</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Visibility</TableHead>
-                    <TableHead>Uploaded</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {allDocuments.map((doc) => (
-                    <TableRow key={doc.id}>
-                      <TableCell>
-                        <div className="font-medium">{doc.filename}</div>
-                        <div className="text-sm text-muted-foreground line-clamp-2">{doc.description}</div>
-                      </TableCell>
-                       <TableCell>{doc.category}</TableCell>
-                      <TableCell>
-                        <div className='flex items-center gap-2'>
-                            {doc.visibility === 'ALL_CICS' ? <Globe className='h-4 w-4 text-muted-foreground' /> : <Users className='h-4 w-4 text-muted-foreground' />}
-                            <span className='text-xs'>
-                                {doc.visibility === 'PROGRAM_SPECIFIC' ? doc.targetProgram?.match(/\(([^)]+)\)/)?.[1] || 'Specific' : 'All CICS'}
-                            </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{doc.uploadedAt ? format(doc.uploadedAt.toDate(), 'yyyy-MM-dd') : ''}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleView(doc as DocumentType)}>
-                            <Eye className="h-4 w-4" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" aria-label={`Delete ${doc.filename}`} disabled={doc.id.startsWith('mock-')} >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete the document
-                                "{doc.filename}" from storage and records.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDelete(doc)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {allDocuments.map((doc) => (
+                        <Card key={doc.id} className="flex flex-col transition-all hover:shadow-lg">
+                            <CardHeader>
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="flex flex-1 items-start gap-4">
+                                        <div className="bg-primary/10 p-2 rounded-md mt-1">
+                                            <FileText className="h-6 w-6 flex-shrink-0 text-primary" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <CardTitle className="line-clamp-3 text-base font-headline leading-snug">{doc.filename}</CardTitle>
+                                            <CardDescription>{doc.category}</CardDescription>
+                                        </div>
+                                    </div>
+                                    <div className='flex items-center gap-1 text-muted-foreground flex-shrink-0' title={doc.visibility === 'PROGRAM_SPECIFIC' ? doc.targetProgram : 'All CICS Students'}>
+                                        {doc.visibility === 'ALL_CICS' ? <Globe className='h-4 w-4' /> : <Users className='h-4 w-4' />}
+                                        <span className='text-xs font-medium'>
+                                            {doc.visibility === 'PROGRAM_SPECIFIC' ? doc.targetProgram?.match(/\(([^)]+)\)/)?.[1] || 'Specific' : 'All'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="flex-1">
+                                <p className="text-xs text-muted-foreground">
+                                    Uploaded: {doc.uploadedAt ? format(doc.uploadedAt.toDate(), 'yyyy-MM-dd') : 'N/A'}
+                                </p>
+                            </CardContent>
+                            <CardFooter className="grid grid-cols-2 gap-2 mt-auto">
+                                <Button variant="outline" onClick={() => handleView(doc as DocumentType)}>
+                                    <Eye className="mr-2" /> View
+                                </Button>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="outline" className="w-full border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive" disabled={doc.id.startsWith('mock-')} >
+                                            <Trash2 className="mr-2" /> Delete
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This action cannot be undone. This will permanently delete the document
+                                            "{doc.filename}" from storage and records.
+                                        </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction
+                                            onClick={() => handleDelete(doc)}
+                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        >
+                                            Delete
+                                        </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </CardFooter>
+                        </Card>
+                    ))}
+                </div>
             ) : (
                 <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/50 p-12 text-center">
                     <FileText className="h-12 w-12 text-muted-foreground" />
