@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const categories = ['All', 'Curriculum', 'Manual', 'Form', 'Guide', 'Academic'];
 
@@ -189,19 +190,31 @@ export default function DocumentList() {
               </div>
             </div>
           </CardHeader>
-          <CardFooter className="grid grid-cols-2 gap-2 mt-auto">
-            <Button variant="outline" onClick={() => handleView(doc as DocumentType)} disabled={isBlocked}>
-                <Eye className="mr-2 h-4 w-4" />
-                View
-            </Button>
-            <Button onClick={() => handleDownload(doc as DocumentType)} disabled={downloading === doc.id || isBlocked}>
-              {downloading === doc.id ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="mr-2 h-4 w-4" />
-              )}
-              {downloading === doc.id ? 'Downloading...' : 'Download'}
-            </Button>
+          <CardFooter className="flex items-center gap-2 mt-auto">
+            <TooltipProvider delayDuration={100}>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button size="icon" variant="outline" onClick={() => handleView(doc as DocumentType)} disabled={isBlocked}>
+                            <Eye className="h-4 w-4" />
+                            <span className="sr-only">View</span>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>View</p></TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button size="icon" onClick={() => handleDownload(doc as DocumentType)} disabled={downloading === doc.id || isBlocked}>
+                          {downloading === doc.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Download className="h-4 w-4" />
+                          )}
+                          <span className="sr-only">Download</span>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>{downloading === doc.id ? 'Downloading...' : 'Download'}</p></TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
           </CardFooter>
         </Card>
       ))}
