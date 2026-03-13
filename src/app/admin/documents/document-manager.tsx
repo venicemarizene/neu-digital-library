@@ -156,8 +156,8 @@ export default function DocumentManager() {
   const fileRef = form.register("file");
 
   return (
-    <div className="grid gap-8 lg:grid-cols-3">
-      <div className="lg:col-span-1">
+    <div className="flex flex-col gap-8">
+      <div>
         <Card>
           <CardHeader>
             <CardTitle>Upload New Document</CardTitle>
@@ -275,7 +275,7 @@ export default function DocumentManager() {
         </Card>
       </div>
 
-      <div className="lg:col-span-2">
+      <div>
         <Card>
           <CardHeader>
             <CardTitle>Existing Documents</CardTitle>
