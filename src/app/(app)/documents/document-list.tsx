@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-const categories = ['All', 'Curriculum', 'Manual', 'Forms', 'Guide', 'Academic'];
+const categories = ['All', 'Curriculum', 'Manual', 'Form', 'Guide', 'Academic'];
 
 const mockDocuments: (DocumentType & {id: string})[] = [
   { id: 'mock-handbook', filename: 'CICS Student Handbook.pdf', category: 'Manual', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-01-15T09:00:00')), uploaderId: 'system-seed', description: 'The rules and regulations for CICS students for the current academic year.', visibility: 'ALL_CICS' },
@@ -23,7 +23,7 @@ const mockDocuments: (DocumentType & {id: string})[] = [
   { id: 'mock-bsit', filename: 'BSIT Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:20:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Information Technology.', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Information Technology (BSIT)' },
   { id: 'mock-bsis', filename: 'BSIS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:25:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Information System.', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Information System (BSIS)' },
   { id: 'mock-faq', filename: 'Internship Requirements FAQ.pdf', category: 'Guide', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-03-10T14:00:00')), uploaderId: 'system-seed', description: 'Frequently asked questions about the CICS internship programs.', visibility: 'ALL_CICS' },
-  { id: 'mock-clearance', filename: 'University Clearance Form.pdf', category: 'Forms', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-04-05T11:30:00')), uploaderId: 'system-seed', description: 'Official college clearance form for graduating students.', visibility: 'ALL_CICS' },
+  { id: 'mock-clearance', filename: 'University Clearance Form.pdf', category: 'Form', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-04-05T11:30:00')), uploaderId: 'system-seed', description: 'Official college clearance form for graduating students.', visibility: 'ALL_CICS' },
 ];
 
 export default function DocumentList() {
@@ -156,12 +156,7 @@ export default function DocumentList() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="flex-grow">
-            <p className="text-sm text-muted-foreground line-clamp-3">
-              {doc.description || (doc.uploadedAt && `Uploaded on ${format(new Date((doc.uploadedAt as any).seconds * 1000), 'MMM d, yyyy')}`)}
-            </p>
-          </CardContent>
-          <CardFooter className="grid grid-cols-2 gap-2">
+          <CardFooter className="grid grid-cols-2 gap-2 mt-auto">
             <Button variant="outline" onClick={() => handleView(doc as DocumentType)} disabled={isBlocked}>
                 <Eye className="mr-2 h-4 w-4" />
                 View
