@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, FileText, Download, Users, Calendar as CalendarIcon, HardDrive, Sparkles } from 'lucide-react';
+import { Loader2, FileText, Download, Users, Calendar as CalendarIcon, HardDrive } from 'lucide-react';
 import { subDays, startOfDay, format, endOfDay, addDays } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -168,7 +168,7 @@ export default function AnalyticsDashboard() {
             </Tabs>
         </div>
       
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Sessions</CardTitle>
@@ -197,16 +197,6 @@ export default function AnalyticsDashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{analyticsData.repositorySize}</div>
              <p className="text-xs text-muted-foreground">Total storage used</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Gemini Intelligence</CardTitle>
-            <Sparkles className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-             <div className="text-2xl font-bold">Enabled</div>
-             <p className="text-xs text-muted-foreground">AI features are active</p>
           </CardContent>
         </Card>
       </div>
