@@ -11,8 +11,18 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const categories = ['All', 'Curriculum', 'Manual', 'Form', 'Guide', 'Academic'];
+
+const programs = [
+  'Bachelor of Library and Information Science (BSLIS)',
+  'Bachelor of Science in Computer Science (BSCS)',
+  'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Digital Animation Technology (BSEMC-DAT)',
+  'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Game Development (BSEMC-GD)',
+  'Bachelor of Science in Information Technology (BSIT)',
+  'Bachelor of Science in Information System (BSIS)',
+];
 
 const mockDocuments: (DocumentType & {id: string})[] = [
   { id: 'mock-handbook', filename: 'CICS Student Handbook.pdf', category: 'Manual', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-01-15T09:00:00')), uploaderId: 'system-seed', description: 'The rules and regulations for CICS students for the current academic year.', visibility: 'ALL_CICS' },
@@ -32,7 +42,17 @@ export default function DocumentList() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
+  const [programFilter, setProgramFilter] = useState('MY_PROGRAM');
   const [downloading, setDownloading] = useState<string | null>(null);
+
+  const programFilterOptions = useMemo(() => [
+    { label: "My Program", value: "MY_PROGRAM" },
+    { label: "All Programs", value: "ALL" },
+    ...programs.map(p => ({
+        label: p.match(/\(([^)]+)\)/)?.[1] || p,
+        value: p
+    }))
+  ], []);
 
   const allCicsConstraints = useMemo(() => [
     where('visibility', '==', 'ALL_CICS'),
@@ -40,15 +60,19 @@ export default function DocumentList() {
   ], []);
 
   const programSpecificConstraints = useMemo(() => {
-      // If program is not yet loaded, use a placeholder that won't match any documents.
-      // This ensures the query is stable and avoids conditional hook errors.
-      const program = appUser?.program || 'NO_PROGRAM';
+      if (programFilter === 'ALL') {
+           return [
+              where('visibility', '==', 'PROGRAM_SPECIFIC'),
+              orderBy('uploadedAt', 'desc')
+          ];
+      }
+      const program = programFilter === 'MY_PROGRAM' ? (appUser?.program || 'NO_PROGRAM') : programFilter;
       return [
           where('visibility', '==', 'PROGRAM_SPECIFIC'),
           where('targetProgram', '==', program),
           orderBy('uploadedAt', 'desc')
       ];
-  }, [appUser?.program]);
+  }, [appUser?.program, programFilter]);
 
   const { data: allCicsDocs, loading: loadingAll, error: errorAll } = useCollection<DocumentType>('Documents', { constraints: allCicsConstraints, listen: true });
   const { data: programDocs, loading: loadingProgram, error: errorProgram } = useCollection<DocumentType>('Documents', { constraints: programSpecificConstraints, listen: true });
@@ -63,13 +87,22 @@ export default function DocumentList() {
 
     const documentsToAdd = mockDocuments.filter(md => {
       if (existingFilenames.has(md.filename)) return false;
+      
+      const isProgramMatch = programFilter === 'ALL' || 
+                             (programFilter === 'MY_PROGRAM' && md.targetProgram === appUser?.program) ||
+                             md.targetProgram === programFilter;
+
       if (md.visibility === 'ALL_CICS') return true;
-      if (md.visibility === 'PROGRAM_SPECIFIC' && md.targetProgram === appUser?.program) return true;
+      if (md.visibility === 'PROGRAM_SPECIFIC' && isProgramMatch) return true;
+      
+      // Special case for when "My Program" is selected but appUser isn't loaded yet
+      if (md.visibility === 'PROGRAM_SPECIFIC' && programFilter === 'MY_PROGRAM' && md.targetProgram === appUser?.program) return true;
+
       return false;
     });
     
     return [...documentsToAdd, ...uniqueFirestoreDocs].sort((a, b) => (b.uploadedAt as any) - (a.uploadedAt as any));
-  }, [allCicsDocs, programDocs, appUser?.program]);
+  }, [allCicsDocs, programDocs, appUser?.program, programFilter]);
   
   useEffect(() => {
     if (appUser?.program && !loading) {
@@ -221,16 +254,30 @@ export default function DocumentList() {
         </Alert>
       )}
       <div className="flex flex-col gap-4">
-        <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-            type="search"
-            placeholder="Search by file, description..."
-            className="w-full pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            disabled={isBlocked}
-            />
+        <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-grow">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                    type="search"
+                    placeholder="Search by file, description..."
+                    className="w-full pl-10"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    disabled={isBlocked}
+                />
+            </div>
+            <Select value={programFilter} onValueChange={setProgramFilter}>
+                <SelectTrigger className="w-full md:w-[240px]">
+                    <SelectValue placeholder="Filter by program..." />
+                </SelectTrigger>
+                <SelectContent>
+                    {programFilterOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
         </div>
         <div className="flex gap-2 flex-wrap">
             {categories.map(cat => (
@@ -246,7 +293,7 @@ export default function DocumentList() {
           <FileText className="h-12 w-12 text-muted-foreground" />
           <h3 className="mt-4 text-lg font-semibold">No Documents Found</h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            {searchTerm || activeCategory !== 'All' ? 'Try adjusting your search or filters.' : 'There are no documents in the library yet.'}
+            {searchTerm || activeCategory !== 'All' || programFilter !== 'MY_PROGRAM' ? 'Try adjusting your search or filters.' : 'There are no documents in the library yet.'}
           </p>
         </div>
       ) : (
