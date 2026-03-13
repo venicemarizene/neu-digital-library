@@ -258,7 +258,8 @@ export default function DocumentManager() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Filename</TableHead>
+                    <TableHead className="w-[30%]">Document</TableHead>
+                    <TableHead>Category</TableHead>
                     <TableHead>Visibility</TableHead>
                     <TableHead>Uploaded</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -267,7 +268,11 @@ export default function DocumentManager() {
                 <TableBody>
                   {documents.map((doc) => (
                     <TableRow key={doc.id}>
-                      <TableCell className="font-medium">{doc.filename}</TableCell>
+                      <TableCell>
+                        <div className="font-medium">{doc.filename}</div>
+                        <div className="text-sm text-muted-foreground line-clamp-2">{doc.description}</div>
+                      </TableCell>
+                       <TableCell>{doc.category}</TableCell>
                       <TableCell>
                         <div className='flex items-center gap-2'>
                             {doc.visibility === 'ALL_CICS' ? <Globe className='h-4 w-4 text-muted-foreground' /> : <Users className='h-4 w-4 text-muted-foreground' />}
