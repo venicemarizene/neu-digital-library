@@ -36,13 +36,20 @@ export function AdminSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className='flex-row items-center justify-between'>
-        <Logo brand="CICS" name="DocHub" isDark />
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.push('/documents')} aria-label="Switch to student view">
-            <ArrowLeftRight className="h-4 w-4" />
-        </Button>
+      <SidebarHeader>
+        <div className="flex flex-row items-center justify-between">
+            <div>
+                <Logo brand="CICS" name="DocHub" isDark />
+                <p className="text-base font-medium text-sidebar-foreground/70 ml-11 tracking-wider">
+                    Admin
+                </p>
+            </div>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.push('/documents')} aria-label="Switch to student view">
+                <ArrowLeftRight className="h-4 w-4" />
+            </Button>
+        </div>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="px-2">
         <SidebarMenu>
            <SidebarMenuItem>
             <SidebarMenuButton
