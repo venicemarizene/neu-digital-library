@@ -24,12 +24,17 @@ export default function AnalyticsDashboard() {
     from: subDays(new Date(), 6),
     to: new Date(),
   });
+  // The isMounted state is used to prevent running date-dependent queries on the server,
+  // which would cause a hydration mismatch with the client.
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    // This effect runs once on the client, setting isMounted to true.
+    // This signals that the component is ready for client-side-only logic.
     setIsMounted(true);
   }, []);
 
+  // This effect updates the date range based on the selected period (Day, Week, Month).
   useEffect(() => {
     if (period === 'day') {
       setDate({ from: new Date(), to: new Date() });
@@ -40,12 +45,16 @@ export default function AnalyticsDashboard() {
     }
   }, [period]);
 
+  // The Firestore query constraints are memoized to prevent re-running the query on every render.
+  // It only re-calculates when the date range changes.
+  // The query is skipped if the component is not yet mounted on the client.
   const logConstraints = useMemo(() => {
     if (!isMounted || !date?.from) return [];
     
     const startDate = startOfDay(date.from);
     const endDate = date.to ? endOfDay(date.to) : endOfDay(date.from);
     
+    // This creates a Firestore query to get logs within the selected date range.
     return [
       where('downloadedAt', '>=', startDate),
       where('downloadedAt', '<=', endDate),
@@ -57,6 +66,8 @@ export default function AnalyticsDashboard() {
 
   const { data: documents, loading: docsLoading } = useCollection<DocumentType>('Documents');
   const { data: students, loading: studentsLoading } = useCollection<AppUser>('Users', { constraints: studentConstraints });
+  // The useCollection hook for logs now uses the dynamic logConstraints
+  // and skips the query entirely until the component is mounted.
   const { data: logs, loading: logsLoading } = useCollection<DownloadLog>('Logs', {
     constraints: logConstraints,
     listen: true,
@@ -65,6 +76,7 @@ export default function AnalyticsDashboard() {
 
   const loading = docsLoading || logsLoading || studentsLoading;
 
+  // The analytics data is memoized and re-calculated whenever the logs or date range change.
   const analyticsData = useMemo(() => {
     if (!logs || !date?.from) {
       return { totalDownloads: 0, activeUsers: 0, activity: [], repositorySize: '1.2 GB' };
@@ -72,6 +84,7 @@ export default function AnalyticsDashboard() {
     
     const activityByDate: { [key: string]: { date: string, downloads: number, users: Set<string> } } = {};
     
+    // Initializes the chart data with empty values for each day in the range.
     let day = startOfDay(date.from);
     const end = endOfDay(date.to || date.from);
     while (day <= end) {
@@ -80,6 +93,7 @@ export default function AnalyticsDashboard() {
         day = addDays(day, 1);
     }
     
+    // Populates the chart data with actual download and user activity from the logs.
     logs.forEach(log => {
       if (!log.downloadedAt) return;
       const dateString = format(new Date((log.downloadedAt as any).seconds * 1000), 'yyyy-MM-dd');
@@ -95,6 +109,7 @@ export default function AnalyticsDashboard() {
     
     const totalUniqueUsers = new Set(logs.map(l => l.userId));
 
+    // Returns the final data for rendering cards and the chart.
     return { totalDownloads: logs.length, activeUsers: totalUniqueUsers.size, activity, repositorySize: '1.2 GB' };
   }, [logs, date]);
 
@@ -119,6 +134,7 @@ export default function AnalyticsDashboard() {
 
   return (
     <div className="space-y-6">
+       {/* UI for selecting the date range (custom, daily, weekly, monthly) */}
        <div className="flex flex-col sm:flex-row justify-end gap-2">
             <Popover>
                 <PopoverTrigger asChild>
@@ -168,6 +184,7 @@ export default function AnalyticsDashboard() {
             </Tabs>
         </div>
       
+      {/* Stat cards that display totals for the selected period */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -201,6 +218,7 @@ export default function AnalyticsDashboard() {
         </Card>
       </div>
 
+        {/* The main chart displaying activity over the selected period */}
         <Card>
           <CardHeader>
             <CardTitle>Engagement Flow</CardTitle>
