@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, FileText, Download, Users, Calendar as CalendarIcon, HardDrive } from 'lucide-react';
+import { Loader2, FileText, Download, Users, Calendar as CalendarIcon, HardDrive, Sparkles } from 'lucide-react';
 import { subDays, startOfDay, format, endOfDay, addDays } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -171,17 +171,7 @@ export default function AnalyticsDashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Downloads</CardTitle>
-            <Download className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{analyticsData.totalDownloads}</div>
-             <p className="text-xs text-muted-foreground">in the selected period</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+            <CardTitle className="text-sm font-medium">Active Sessions</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -191,12 +181,12 @@ export default function AnalyticsDashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Files</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Doc Downloads</CardTitle>
+            <Download className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{documents?.length ?? 0}</div>
-             <p className="text-xs text-muted-foreground">in library</p>
+            <div className="text-2xl font-bold">{analyticsData.totalDownloads}</div>
+             <p className="text-xs text-muted-foreground">in the selected period</p>
           </CardContent>
         </Card>
         <Card>
@@ -209,12 +199,22 @@ export default function AnalyticsDashboard() {
              <p className="text-xs text-muted-foreground">Total storage used</p>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Gemini Intelligence</CardTitle>
+            <Sparkles className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+             <div className="text-2xl font-bold">Enabled</div>
+             <p className="text-xs text-muted-foreground">AI features are active</p>
+          </CardContent>
+        </Card>
       </div>
 
         <Card>
           <CardHeader>
             <CardTitle>Engagement Flow</CardTitle>
-            <CardDescription>A comparison of student logins versus document retrieval over the selected period.</CardDescription>
+            <CardDescription>Comparing login frequency vs document retrieval.</CardDescription>
           </CardHeader>
           <CardContent>
              {analyticsData.activity.length > 0 ? (

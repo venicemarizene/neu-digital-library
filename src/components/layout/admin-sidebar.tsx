@@ -10,12 +10,11 @@ import {
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import { usePathname, useRouter } from 'next/navigation';
-import { Users, File, BarChart3, LogOut, ArrowLeftRight } from 'lucide-react';
+import { Users, File, BarChart3, LogOut } from 'lucide-react';
 import { Logo } from '@/components/icons/logo';
 import { signOut } from 'firebase/auth';
 import { useAuth, useUser } from '@/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function AdminSidebar() {
@@ -44,9 +43,6 @@ export function AdminSidebar() {
                     Admin
                 </p>
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.push('/documents')} aria-label="Switch to student view">
-                <ArrowLeftRight className="h-4 w-4" />
-            </Button>
         </div>
       </SidebarHeader>
       <SidebarContent className="px-2">
@@ -58,7 +54,7 @@ export function AdminSidebar() {
               tooltip="Dashboard"
             >
               <BarChart3 />
-              <span>Dashboard</span>
+              <span className='ml-2'>Dashboard</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
@@ -68,7 +64,7 @@ export function AdminSidebar() {
               tooltip="Students"
             >
               <Users />
-              <span>Students</span>
+              <span className='ml-2'>Students</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
@@ -78,7 +74,7 @@ export function AdminSidebar() {
               tooltip="Documents"
             >
               <File />
-              <span>Documents</span>
+              <span className='ml-2'>Documents</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

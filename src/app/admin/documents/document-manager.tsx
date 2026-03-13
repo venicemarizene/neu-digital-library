@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Trash2, Upload, FileText, Globe, Users } from 'lucide-react';
+import { Loader2, Trash2, Upload, FileText, Globe, Users, Eye } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 const programs = [
@@ -278,6 +278,11 @@ export default function DocumentManager() {
                       </TableCell>
                       <TableCell>{doc.uploadedAt ? format(doc.uploadedAt.toDate(), 'yyyy-MM-dd') : ''}</TableCell>
                       <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" asChild>
+                            <a href={doc.downloadURL} target="_blank" rel="noopener noreferrer" aria-label={`View ${doc.filename}`}>
+                                <Eye className="h-4 w-4" />
+                            </a>
+                        </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button variant="ghost" size="icon" aria-label={`Delete ${doc.filename}`}>

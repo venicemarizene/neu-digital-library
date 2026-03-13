@@ -13,14 +13,14 @@ import { Loader2, Users } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { where } from 'firebase/firestore';
 
-const programs = [
-  'All Programs',
-  'Bachelor of Library and Information Science (BSLIS)',
-  'Bachelor of Science in Computer Science (BSCS)',
-  'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Digital Animation Technology (BSEMC-DAT)',
-  'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Game Development (BSEMC-GD)',
-  'Bachelor of Science in Information Technology (BSIT)',
-  'Bachelor of Science in Information System (BSIS)',
+const programOptions = [
+  { label: 'All Programs', value: 'All Programs' },
+  { label: 'BSLIS', value: 'Bachelor of Library and Information Science (BSLIS)' },
+  { label: 'BSCS', value: 'Bachelor of Science in Computer Science (BSCS)' },
+  { label: 'BSEMC-DAT', value: 'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Digital Animation Technology (BSEMC-DAT)' },
+  { label: 'BSEMC-GD', value: 'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Game Development (BSEMC-GD)' },
+  { label: 'BSIT', value: 'Bachelor of Science in Information Technology (BSIT)' },
+  { label: 'BSIS', value: 'Bachelor of Science in Information System (BSIS)' },
 ];
 
 const getInitials = (name: string | null | undefined) => {
@@ -62,12 +62,12 @@ export default function StudentTable() {
       <CardContent className="pt-6">
         <div className="mb-4">
           <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-full sm:w-64">
+            <SelectTrigger className="w-full sm:w-[300px]">
               <SelectValue placeholder="Filter by program..." />
             </SelectTrigger>
             <SelectContent>
-              {programs.map((p) => (
-                <SelectItem key={p} value={p}>{p}</SelectItem>
+              {programOptions.map((p) => (
+                <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
