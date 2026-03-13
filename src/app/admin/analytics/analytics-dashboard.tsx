@@ -10,6 +10,8 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Download, Users, HardDrive } from 'lucide-react';
 import { subDays, startOfDay, format, endOfDay, addDays } from 'date-fns';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 type Period = 'day' | 'week' | 'month' | 'custom';
 
@@ -28,6 +30,7 @@ export default function AnalyticsDashboard() {
   // The isMounted state is used to prevent running date-dependent queries on the server,
   // which would cause a hydration mismatch with the client.
   const [isMounted, setIsMounted] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     // This effect runs once on the client, setting isMounted to true.
@@ -125,6 +128,40 @@ export default function AnalyticsDashboard() {
     },
   };
 
+  const handleDownloadCSV = () => {
+    if (!analyticsData.activity || analyticsData.activity.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'No Data to Export',
+        description: 'There is no data in the selected period to export.',
+      });
+      return;
+    }
+
+    const headers = ['Date', 'Doc Downloads', 'Student Logins'];
+    const csvRows = [
+      headers.join(','),
+      ...analyticsData.activity.map((row) =>
+        [row.date, row.downloads, row.logins].join(',')
+      ),
+    ];
+
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    
+    const fromDate = date?.from ? format(date.from, 'yyyy-MM-dd') : 'start';
+    const toDate = date?.to ? format(date.to, 'yyyy-MM-dd') : fromDate;
+    link.setAttribute('download', `cics-engagement-flow_${fromDate}_to_${toDate}.csv`);
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-96">
@@ -217,8 +254,16 @@ export default function AnalyticsDashboard() {
         {/* The main chart displaying activity over the selected period */}
         <Card>
           <CardHeader>
-            <CardTitle>Engagement Flow</CardTitle>
-            <CardDescription>Comparing login frequency vs document retrieval.</CardDescription>
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                <div>
+                    <CardTitle>Engagement Flow</CardTitle>
+                    <CardDescription>Comparing login frequency vs document retrieval.</CardDescription>
+                </div>
+                <Button variant="outline" onClick={handleDownloadCSV}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download CSV
+                </Button>
+            </div>
           </CardHeader>
           <CardContent>
              {analyticsData.activity.length > 0 ? (
@@ -235,7 +280,7 @@ export default function AnalyticsDashboard() {
                                 <stop offset="95%" stopColor="hsl(var(--accent))" stopOpacity={0}/>
                             </linearGradient>
                         </defs>
-                        <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} tickFormatter={(value) => format(new Date(value), 'MM/dd')} />
+                        <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} tickFormatter={(value) => format(new Date(value + 'T00:00:00'), 'MM/dd')} />
                         <YAxis hide />
                         <ChartTooltip cursor={true} content={<ChartTooltipContent indicator="line" />} />
                         <Legend verticalAlign="top" align="right" wrapperStyle={{paddingBottom: '20px'}}/>
