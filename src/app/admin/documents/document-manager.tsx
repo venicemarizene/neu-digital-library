@@ -393,7 +393,7 @@ export default function DocumentManager() {
                   <Loader2 className="h-8 w-8 animate-spin" />
               </div>
             ) : filteredDocuments.length > 0 ? (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <div className="grid gap-6 md:grid-cols-2">
                     {filteredDocuments.map((doc) => (
                         <Card key={doc.id} className="flex flex-col transition-all hover:shadow-lg">
                             <CardHeader>
