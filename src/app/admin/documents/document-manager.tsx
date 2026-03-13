@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { collection, addDoc, serverTimestamp, deleteDoc, doc as firestoreDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, deleteDoc, doc as firestoreDoc, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useUser, useFirestore, useStorage, useCollection } from '@/firebase';
 import type { Document as DocumentType } from '@/lib/types';
@@ -46,17 +46,36 @@ const documentSchema = z.object({
     path: ["targetProgram"],
 });
 
+const mockDocuments: (DocumentType & {id: string})[] = [
+  { id: 'mock-handbook', filename: 'CICS Student Handbook.pdf', category: 'Manual', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-01-15T09:00:00')), uploaderId: 'system-seed', description: 'The rules and regulations for CICS students for the current academic year.', visibility: 'ALL_CICS' },
+  { id: 'mock-bslis', filename: 'BSLIS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:00:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Library and Information Science.', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Library and Information Science (BSLIS)' },
+  { id: 'mock-bscs', filename: 'BSCS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:10:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Computer Science.', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Computer Science (BSCS)' },
+  { id: 'mock-bsemc-dat', filename: 'BSEMC-DAT Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:05:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Digital Animation Technology.', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Digital Animation Technology (BSEMC-DAT)' },
+  { id: 'mock-bsemc-gd', filename: 'BSEMC-GD Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:15:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Game Development.', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Game Development (BSEMC-GD)' },
+  { id: 'mock-bsit', filename: 'BSIT Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:20:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Information Technology.', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Information Technology (BSIT)' },
+  { id: 'mock-bsis', filename: 'BSIS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:25:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Information System.', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Information System (BSIS)' },
+  { id: 'mock-faq', filename: 'Internship Requirements FAQ.pdf', category: 'Guide', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-03-10T14:00:00')), uploaderId: 'system-seed', description: 'Frequently asked questions about the CICS internship programs.', visibility: 'ALL_CICS' },
+  { id: 'mock-clearance', filename: 'University Clearance Form.pdf', category: 'Forms', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-04-05T11:30:00')), uploaderId: 'system-seed', description: 'Official college clearance form for graduating students.', visibility: 'ALL_CICS' },
+];
+
 export default function DocumentManager() {
   const { user } = useUser();
   const db = useFirestore();
   const storage = useStorage();
   const { toast } = useToast();
   const documentConstraints = useMemo(() => [orderBy('uploadedAt', 'desc')], []);
-  const { data: documents, loading } = useCollection<DocumentType>('Documents', {
+  const { data: firestoreDocs, loading } = useCollection<DocumentType>('Documents', {
     constraints: documentConstraints,
     listen: true,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const allDocuments = useMemo(() => {
+    const existingFilenames = new Set(firestoreDocs?.map(d => d.filename) || []);
+    const documentsToAdd = mockDocuments.filter(md => !existingFilenames.has(md.filename));
+    
+    return [...documentsToAdd, ...(firestoreDocs || [])].sort((a, b) => (b.uploadedAt as any) - (a.uploadedAt as any));
+  }, [firestoreDocs]);
 
   const form = useForm<z.infer<typeof documentSchema>>({
     resolver: zodResolver(documentSchema),
@@ -110,7 +129,19 @@ export default function DocumentManager() {
     }
   }
 
+  const handleView = (doc: DocumentType) => {
+    if (doc.id.startsWith('mock-')) {
+        toast({ variant: 'default', title: 'Sample Document', description: 'This is a sample document for demonstration purposes.' });
+        return;
+    }
+    window.open(doc.downloadURL, '_blank');
+  };
+
   const handleDelete = async (docToDelete: DocumentType) => {
+    if (docToDelete.id.startsWith('mock-')) {
+        toast({ variant: 'destructive', title: 'Action Not Allowed', description: 'Sample documents cannot be deleted.' });
+        return;
+    }
     try {
       await deleteDoc(firestoreDoc(db, 'Documents', docToDelete.id));
       const storageRef = ref(storage, `cics_docs/${docToDelete.filename}`);
@@ -254,7 +285,7 @@ export default function DocumentManager() {
               <div className="flex justify-center items-center h-48">
                   <Loader2 className="h-8 w-8 animate-spin" />
               </div>
-            ) : documents && documents.length > 0 ? (
+            ) : allDocuments && allDocuments.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -266,7 +297,7 @@ export default function DocumentManager() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {documents.map((doc) => (
+                  {allDocuments.map((doc) => (
                     <TableRow key={doc.id}>
                       <TableCell>
                         <div className="font-medium">{doc.filename}</div>
@@ -283,14 +314,12 @@ export default function DocumentManager() {
                       </TableCell>
                       <TableCell>{doc.uploadedAt ? format(doc.uploadedAt.toDate(), 'yyyy-MM-dd') : ''}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" asChild>
-                            <a href={doc.downloadURL} target="_blank" rel="noopener noreferrer" aria-label={`View ${doc.filename}`}>
-                                <Eye className="h-4 w-4" />
-                            </a>
+                        <Button variant="ghost" size="icon" onClick={() => handleView(doc as DocumentType)}>
+                            <Eye className="h-4 w-4" />
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" aria-label={`Delete ${doc.filename}`}>
+                            <Button variant="ghost" size="icon" aria-label={`Delete ${doc.filename}`} disabled={doc.id.startsWith('mock-')} >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </AlertDialogTrigger>
