@@ -29,7 +29,7 @@ const mockDocuments: (DocumentType & {id: string})[] = [
 ];
 
 export default function DocumentList() {
-  const { user, appUser, isBlocked } = useUser();
+  const { user, appUser, isBlocked, loading: userLoading } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
@@ -51,14 +51,18 @@ export default function DocumentList() {
       ];
   }, [appUser?.program]);
 
-  const { data: allCicsDocs, loading: loadingAll, error: errorAll } = useCollection<DocumentType>('Documents', { constraints: allCicsConstraints, listen: true });
+  const { data: allCicsDocs, loading: loadingAll, error: errorAll } = useCollection<DocumentType>('Documents', { 
+    constraints: allCicsConstraints, 
+    listen: true, 
+    skip: userLoading 
+  });
   const { data: programDocs, loading: loadingProgram, error: errorProgram } = useCollection<DocumentType>('Documents', { 
     constraints: programSpecificConstraints, 
     listen: true, 
-    skip: !appUser?.program 
+    skip: userLoading || !appUser?.program 
   });
 
-  const loading = loadingAll || loadingProgram;
+  const loading = userLoading || loadingAll || loadingProgram;
 
   const allDocuments = useMemo(() => {
     const firestoreDocs = [...(allCicsDocs || []), ...(programDocs || [])];
