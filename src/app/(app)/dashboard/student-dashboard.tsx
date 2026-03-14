@@ -5,7 +5,6 @@ import { useUser, useFirestore, useCollection } from '@/firebase';
 import type { Document as DocumentType, DownloadLog } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileText, Download, Eye, Loader2, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -219,12 +218,20 @@ export default function StudentDashboard() {
 
     return (
         <div className="space-y-6">
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'view' | 'download')} className="w-full">
-                <TabsList className="w-full justify-start rounded-none bg-transparent p-0 border-b">
-                    <TabsTrigger value="view" className="rounded-none bg-transparent shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary">Recently Viewed</TabsTrigger>
-                    <TabsTrigger value="download" className="rounded-none bg-transparent shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary">Recently Downloaded</TabsTrigger>
-                </TabsList>
-            </Tabs>
+            <div className="flex space-x-2">
+                <Button
+                    variant={activeTab === 'view' ? 'default' : 'outline'}
+                    onClick={() => setActiveTab('view')}
+                >
+                    Recently Viewed
+                </Button>
+                <Button
+                    variant={activeTab === 'download' ? 'default' : 'outline'}
+                    onClick={() => setActiveTab('download')}
+                >
+                    Recently Downloaded
+                </Button>
+            </div>
             
             {documents.length === 0 ? (
                 <div className="flex flex-col items-center justify-center rounded-lg bg-card py-24 text-center shadow-md">
