@@ -32,7 +32,7 @@ const programs = [
   'Bachelor of Science in Information System (BSIS)',
 ];
 
-const docCategories = ['Curriculum', 'Form', 'Manual', 'Guide', 'Academic'];
+const docCategories = ['Curriculum', 'Form', 'Manual', 'Guide'];
 const allDocCategories = ['All', ...docCategories];
 
 

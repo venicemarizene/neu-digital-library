@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-const categories = ['All', 'Curriculum', 'Manual', 'Form', 'Guide', 'Academic'];
+const categories = ['All', 'Curriculum', 'Manual', 'Form', 'Guide'];
 
 const mockDocuments: (DocumentType & {id: string})[] = [
   { id: 'mock-handbook', filename: 'CICS Student Handbook.pdf', category: 'Manual', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-01-15T09:00:00')), uploaderId: 'system-seed', description: 'The rules and regulations for CICS students for the current academic year.', visibility: 'ALL_CICS' },
@@ -191,7 +191,7 @@ export default function DocumentList() {
     return (
         <div className="space-y-6">
             <div className="flex flex-col gap-4">
-               <Skeleton className="h-10 flex-1 max-w-sm" />
+               <Skeleton className="h-10 flex-1" />
                 <div className="flex gap-2">
                     <Skeleton className="h-10 w-20" />
                     <Skeleton className="h-10 w-20" />
@@ -234,7 +234,7 @@ export default function DocumentList() {
         </Alert>
       )}
       <div className="flex flex-col gap-4">
-        <div className="relative max-w-sm">
+        <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
                 type="search"
