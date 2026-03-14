@@ -23,12 +23,8 @@ type DateRange = {
 
 export default function AnalyticsDashboard() {
   const [period, setPeriod] = useState<Period>('week');
-  const [date, setDate] = useState<DateRange | undefined>({
-    from: subDays(new Date(), 6),
-    to: new Date(),
-  });
-  // The isMounted state is used to prevent running date-dependent queries on the server,
-  // which would cause a hydration mismatch with the client.
+  // Initialize date as undefined to prevent hydration mismatch errors.
+  const [date, setDate] = useState<DateRange | undefined>();
   const [isMounted, setIsMounted] = useState(false);
   const { toast } = useToast();
 
@@ -39,7 +35,12 @@ export default function AnalyticsDashboard() {
   }, []);
 
   // This effect updates the date range based on the selected period (Day, Week, Month).
+  // It now waits until the component is mounted to prevent hydration errors.
   useEffect(() => {
+    if (!isMounted) return;
+    
+    if (period === 'custom') return; // Custom range is set by date pickers.
+
     if (period === 'day') {
       setDate({ from: new Date(), to: new Date() });
     } else if (period === 'week') {
@@ -47,11 +48,10 @@ export default function AnalyticsDashboard() {
     } else if (period === 'month') {
       setDate({ from: subDays(new Date(), 29), to: new Date() });
     }
-  }, [period]);
+  }, [period, isMounted]);
 
   // The Firestore query constraints are memoized to prevent re-running the query on every render.
   // It only re-calculates when the date range changes.
-  // The query is skipped if the component is not yet mounted on the client.
   const logConstraints = useMemo(() => {
     if (!isMounted || !date?.from) return [];
     
@@ -71,11 +71,11 @@ export default function AnalyticsDashboard() {
   const { data: documents, loading: docsLoading } = useCollection<DocumentType>('Documents');
   const { data: students, loading: studentsLoading } = useCollection<AppUser>('Users', { constraints: studentConstraints });
   // The useCollection hook for logs now uses the dynamic logConstraints
-  // and skips the query entirely until the component is mounted.
+  // and skips the query entirely until the component is mounted and date is set.
   const { data: logs, loading: logsLoading } = useCollection<DownloadLog>('Logs', {
     constraints: logConstraints,
     listen: true,
-    skip: !isMounted,
+    skip: !isMounted || !date,
   });
 
   const loading = docsLoading || logsLoading || studentsLoading;
@@ -162,7 +162,8 @@ export default function AnalyticsDashboard() {
     URL.revokeObjectURL(url);
   };
 
-  if (loading) {
+  // The main loading indicator now waits until the component is mounted and the date state is initialized.
+  if (loading || !isMounted || !date) {
     return (
       <div className="flex justify-center items-center h-96">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -295,3 +296,5 @@ export default function AnalyticsDashboard() {
     </div>
   );
 }
+
+    
