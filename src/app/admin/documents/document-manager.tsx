@@ -52,18 +52,6 @@ const documentSchema = z.object({
     path: ["targetProgram"],
 });
 
-const mockDocuments: (DocumentType & {id: string})[] = [
-  { id: 'mock-handbook', filename: 'CICS Student Handbook.pdf', category: 'Manual', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-01-15T09:00:00')), uploaderId: 'system-seed', description: 'The rules and regulations for CICS students for the current academic year.', visibility: 'ALL_CICS' },
-  { id: 'mock-bslis', filename: 'BSLIS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:00:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Library and Information Science.', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Library and Information Science (BSLIS)' },
-  { id: 'mock-bscs', filename: 'BSCS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:10:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Computer Science.', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Computer Science (BSCS)' },
-  { id: 'mock-bsemc-dat', filename: 'BSEMC-DAT Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:05:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Digital Animation Technology.', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Digital Animation Technology (BSEMC-DAT)' },
-  { id: 'mock-bsemc-gd', filename: 'BSEMC-GD Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:15:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Game Development.', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Game Development (BSEMC-GD)' },
-  { id: 'mock-bsit', filename: 'BSIT Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:20:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Information Technology.', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Information Technology (BSIT)' },
-  { id: 'mock-bsis', filename: 'BSIS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:25:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Information System.', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Information System (BSIS)' },
-  { id: 'mock-faq', filename: 'Internship Requirements FAQ.pdf', category: 'Guide', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-03-10T14:00:00')), uploaderId: 'system-seed', description: 'Frequently asked questions about the CICS internship programs.', visibility: 'ALL_CICS' },
-  { id: 'mock-clearance', filename: 'University Clearance Form.pdf', category: 'Form', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-04-05T11:30:00')), uploaderId: 'system-seed', description: 'Official college clearance form for graduating students.', visibility: 'ALL_CICS' },
-];
-
 export default function DocumentManager() {
   const { user } = useUser();
   const db = useFirestore();
@@ -90,15 +78,8 @@ export default function DocumentManager() {
     listen: true,
   });
 
-  const allDocuments = useMemo(() => {
-    const existingFilenames = new Set(firestoreDocs?.map(d => d.filename) || []);
-    const documentsToAdd = mockDocuments.filter(md => !existingFilenames.has(md.filename));
-    
-    return [...documentsToAdd, ...(firestoreDocs || [])].sort((a, b) => (b.uploadedAt as any) - (a.uploadedAt as any));
-  }, [firestoreDocs]);
-  
   const filteredDocuments = useMemo(() => {
-    let docs = allDocuments;
+    let docs = firestoreDocs || [];
 
     if (activeCategory !== 'All') {
         docs = docs.filter(doc => doc.category === activeCategory);
@@ -118,7 +99,7 @@ export default function DocumentManager() {
     }
 
     return docs;
-  }, [allDocuments, activeCategory, programFilter, searchTerm]);
+  }, [firestoreDocs, activeCategory, programFilter, searchTerm]);
 
   const form = useForm<z.infer<typeof documentSchema>>({
     resolver: zodResolver(documentSchema),
@@ -173,18 +154,10 @@ export default function DocumentManager() {
   }
 
   const handleView = (doc: DocumentType) => {
-    if (doc.id.startsWith('mock-')) {
-        toast({ variant: 'default', title: 'Sample Document', description: 'This is a sample document for demonstration purposes.' });
-        return;
-    }
     window.open(doc.downloadURL, '_blank');
   };
   
   const handleDownload = async (doc: DocumentType) => {
-    if (doc.id.startsWith('mock-')) {
-        toast({ variant: 'default', title: 'Sample Document', description: 'This is a sample document for demonstration purposes.' });
-        return;
-    }
     setDownloading(doc.id);
     try {
       const link = document.createElement('a');
@@ -205,10 +178,6 @@ export default function DocumentManager() {
 
 
   const handleDelete = async (docToDelete: DocumentType) => {
-    if (docToDelete.id.startsWith('mock-')) {
-      toast({ variant: 'destructive', title: 'Action Not Allowed', description: 'Sample documents cannot be deleted.' });
-      return;
-    }
     if (!db || !storage) return;
 
     const docRef = firestoreDoc(db, 'Documents', docToDelete.id);
@@ -474,7 +443,7 @@ export default function DocumentManager() {
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
                                                     <AlertDialogTrigger asChild>
-                                                        <Button size="icon" variant="outline" className="text-red-500 border border-red-200 hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-all duration-200" disabled={doc.id.startsWith('mock-')} >
+                                                        <Button size="icon" variant="outline" className="text-red-500 border border-red-200 hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-all duration-200">
                                                             <Trash2 className="h-4 w-4" />
                                                             <span className="sr-only">Delete</span>
                                                         </Button>
