@@ -120,78 +120,93 @@ export default function DocumentManager() {
   });
 
   async function onSubmit(values: z.infer<typeof documentSchema>) {
-    if (!user || !db || !storage) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Authentication or service error.',
-      });
-      return;
-    }
-
     const file = values.file[0];
-    if (!file) return;
+    console.log('Upload started for:', file.name);
+
+    if (!user || !db || !storage) {
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Authentication or Firebase services not available.',
+        });
+        return;
+    }
 
     setIsSubmitting(true);
     setUploadProgress(0);
 
     const storageRef = ref(storage, `cics_docs/${file.name}`);
+    console.log('Storage Ref Path:', storageRef.fullPath);
+
     const uploadTask = uploadBytesResumable(storageRef, file);
 
     const uploadPromise = new Promise<string>((resolve, reject) => {
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          setUploadProgress(progress);
-        },
-        (error) => {
-          console.error('Upload failed:', error);
-          reject(error);
-        },
-        () => {
-          getDownloadURL(uploadTask.snapshot.ref).then(resolve).catch(reject);
-        }
-      );
+        uploadTask.on(
+            'state_changed',
+            (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                console.log('Upload is ' + progress + '% done');
+                setUploadProgress(progress);
+            },
+            (error) => {
+                console.error('Upload failed during state change:', error);
+                // Comprehensive error catching
+                switch (error.code) {
+                    case 'storage/unauthorized':
+                        console.error("User doesn't have permission to access the object");
+                        break;
+                    case 'storage/canceled':
+                        console.error("User canceled the upload");
+                        break;
+                    case 'storage/unknown':
+                        console.error("Unknown error occurred, inspect error.serverResponse");
+                        break;
+                }
+                reject(error);
+            },
+            () => {
+                console.log('Upload finished. Getting download URL...');
+                getDownloadURL(uploadTask.snapshot.ref).then(resolve).catch(reject);
+            }
+        );
     });
 
     try {
-      const downloadURL = await uploadPromise;
+        const downloadURL = await uploadPromise;
+        console.log('File available at', downloadURL);
 
-      const docData = {
-        filename: file.name,
-        category: values.category,
-        description: values.description,
-        downloadURL: downloadURL,
-        uploadedAt: serverTimestamp(),
-        uploaderId: user.uid,
-        visibility: values.visibility,
-        targetProgram:
-          values.visibility === 'PROGRAM_SPECIFIC'
-            ? values.targetProgram
-            : null,
-      };
+        const docData = {
+            filename: file.name,
+            category: values.category,
+            description: values.description,
+            downloadURL: downloadURL,
+            uploadedAt: serverTimestamp(),
+            uploaderId: user.uid,
+            visibility: values.visibility,
+            targetProgram: values.visibility === 'PROGRAM_SPECIFIC' ? values.targetProgram : null,
+        };
 
-      await addDoc(collection(db, 'Documents'), docData);
+        await addDoc(collection(db, 'Documents'), docData);
+        console.log('Document metadata saved to Firestore.');
 
-      toast({
-        title: 'Success',
-        description: 'Document uploaded successfully.',
-      });
-      form.reset();
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+        toast({
+            title: 'Success',
+            description: 'Document uploaded successfully.',
+        });
+        form.reset();
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
     } catch (error) {
-      console.error("Error during upload process:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Upload Failed',
-        description: 'An error occurred. Please check console and Firebase rules.',
-      });
+        console.error("An error occurred during the upload process:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Upload Failed',
+            description: 'Could not upload document. Check console for details.',
+        });
     } finally {
-      setIsSubmitting(false);
-      setUploadProgress(null);
+        setIsSubmitting(false);
+        setUploadProgress(null);
     }
   }
 
