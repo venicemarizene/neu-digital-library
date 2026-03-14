@@ -422,8 +422,8 @@ export default function DocumentManager() {
                                 </p>
                             </CardContent>
                             <CardFooter className="mt-auto">
-                                <div className="flex w-full items-center justify-between">
-                                    <TooltipProvider delayDuration={100}>
+                                <TooltipProvider delayDuration={100}>
+                                    <div className="flex w-full items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
@@ -480,8 +480,8 @@ export default function DocumentManager() {
                                                 </AlertDialogFooter>
                                             </AlertDialogContent>
                                         </AlertDialog>
-                                    </TooltipProvider>
-                                </div>
+                                    </div>
+                                </TooltipProvider>
                             </CardFooter>
                         </Card>
                     ))}
