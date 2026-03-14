@@ -4,14 +4,15 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Helper function to check if a user is an admin
     function isAdmin(userId) {
-      return get(/databases/$(database)/documents/Users/$(userId)).data.isAdmin == true;
+      // Check for document existence before accessing data to prevent errors.
+      return exists(/databases/$(database)/documents/Users/$(userId)) && 
+             get(/databases/$(database)/documents/Users/$(userId)).data.isAdmin == true;
     }
 
     // Users can only read and write to their own document.
     // Admins can read and write to any user document.
     match /Users/{userId} {
-      allow read, update, write: if request.auth.uid == userId || isAdmin(request.auth.uid);
-      allow create: if request.auth.uid == userId;
+      allow read, write: if request.auth.uid == userId || isAdmin(request.auth.uid);
     }
 
     // Authenticated users can read documents.
