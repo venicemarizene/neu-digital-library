@@ -36,14 +36,7 @@ export function AdminSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <div className="flex flex-row items-center justify-between">
-            <div>
-                <Logo brand="CICS" name="DocHub" isDark />
-                <p className="text-base font-medium text-sidebar-foreground/70 ml-11 tracking-wider">
-                    Admin
-                </p>
-            </div>
-        </div>
+        <Logo brand="CICS" name="DocHub" isDark />
       </SidebarHeader>
       <SidebarContent className="px-2">
         <SidebarMenu>
