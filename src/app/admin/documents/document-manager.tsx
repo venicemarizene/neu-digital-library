@@ -152,55 +152,45 @@ export default function DocumentManager() {
         setIsSubmitting(false);
         setUploadProgress(null);
       },
-      () => {
-        getDownloadURL(uploadTask.snapshot.ref)
-          .then(async (downloadURL) => {
-            try {
-              await addDoc(collection(db, 'Documents'), {
-                filename: file.name,
-                category: values.category,
-                description: values.description,
-                downloadURL: downloadURL,
-                uploadedAt: serverTimestamp(),
-                uploaderId: user.uid,
-                visibility: values.visibility,
-                targetProgram:
-                  values.visibility === 'PROGRAM_SPECIFIC'
-                    ? values.targetProgram
-                    : null,
-              });
+      async () => {
+        try {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          
+          const docData = {
+            filename: file.name,
+            category: values.category,
+            description: values.description,
+            downloadURL: downloadURL,
+            uploadedAt: serverTimestamp(),
+            uploaderId: user.uid,
+            visibility: values.visibility,
+            targetProgram:
+              values.visibility === 'PROGRAM_SPECIFIC'
+                ? values.targetProgram
+                : null,
+          };
 
-              toast({
-                title: 'Success',
-                description: 'Document uploaded successfully.',
-              });
-              form.reset();
-              // Clear the file input visually
-              if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-              }
-            } catch (dbError: any) {
-              console.error('Firestore save failed:', dbError);
-              toast({
-                variant: 'destructive',
-                title: 'Save Failed',
-                description: 'Could not save document details.',
-              });
-            } finally {
-              setIsSubmitting(false);
-              setUploadProgress(null);
-            }
-          })
-          .catch((error) => {
-            console.error('Failed to get download URL:', error);
-            toast({
-              variant: 'destructive',
-              title: 'Upload Failed',
-              description: 'Could not finalize the upload. Please try again.',
-            });
-            setIsSubmitting(false);
-            setUploadProgress(null);
+          await addDoc(collection(db, 'Documents'), docData);
+
+          toast({
+            title: 'Success',
+            description: 'Document uploaded successfully.',
           });
+          form.reset();
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+        } catch (error) {
+          console.error('Error during upload completion:', error);
+          toast({
+            variant: 'destructive',
+            title: 'Upload Failed',
+            description: 'Could not save document details after upload. The file may have been uploaded but not recorded.',
+          });
+        } finally {
+          setIsSubmitting(false);
+          setUploadProgress(null);
+        }
       }
     );
   }
