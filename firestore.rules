@@ -20,19 +20,14 @@ service cloud.firestore {
       allow create, update, delete: if isRequestingUserAdmin();
     }
     
-    // This rule allows a user to create their own log entries.
-    // An admin (by email) can read any log.
-    // A non-admin user can only read their own log entries.
     match /Logs/{logId} {
       allow create: if request.auth.uid == request.resource.data.userId;
-
-      // Any authenticated user can attempt a query on the logs collection.
-      // The client-side query MUST be constrained to ensure users only request logs they have permission to read.
-      allow list: if request.auth != null;
-
-      // This rule secures the actual read of a single document.
-      // It is enforced after the 'list' operation retrieves documents.
-      allow get: if isRequestingUserAdmin() || request.auth.uid == resource.data.userId;
+      
+      // A user can read their own logs. An admin can read any log.
+      // This rule is structured to help Firestore's query evaluation by making both
+      // sides of the OR condition depend on the resource data.
+      allow read: if (request.auth.uid == resource.data.userId) || 
+                   (isRequestingUserAdmin() && resource.data.userId != null);
     }
   }
 }
