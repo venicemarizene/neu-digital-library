@@ -213,12 +213,12 @@ export default function DocumentManager() {
 
     const docRef = firestoreDoc(db, 'Documents', docToDelete.id);
     try {
-      // First, delete the Firestore document
-      await deleteDoc(docRef);
-
       // Then, delete the file from Firebase Storage
       const storageRef = ref(storage, `cics_docs/${docToDelete.filename}`);
       await deleteObject(storageRef);
+      
+      // First, delete the Firestore document
+      await deleteDoc(docRef);
 
       toast({ title: 'Success', description: 'Document deleted successfully.' });
     } catch (error: any) {
