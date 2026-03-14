@@ -119,7 +119,7 @@ export default function DocumentManager() {
     name: 'visibility'
   });
 
-  function onSubmit(values: z.infer<typeof documentSchema>) {
+  async function onSubmit(values: z.infer<typeof documentSchema>) {
     if (!user || !db || !storage) {
       toast({
         variant: 'destructive',
@@ -128,72 +128,88 @@ export default function DocumentManager() {
       });
       return;
     }
+
+    const file = values.file[0];
+    if (!file) return;
+
     setIsSubmitting(true);
     setUploadProgress(0);
 
-    const file = values.file[0];
-    const storageRef = ref(storage, `cics_docs/${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
+    try {
+      const storageRef = ref(storage, `cics_docs/${file.name}`);
+      const uploadTask = uploadBytesResumable(storageRef, file);
 
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        const progress =
-          (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setUploadProgress(progress);
-      },
-      (error) => {
-        console.error('Upload failed:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Upload Failed',
-          description: error.message,
-        });
-        setIsSubmitting(false);
-        setUploadProgress(null);
-      },
-      async () => {
-        try {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          
-          const docData = {
-            filename: file.name,
-            category: values.category,
-            description: values.description,
-            downloadURL: downloadURL,
-            uploadedAt: serverTimestamp(),
-            uploaderId: user.uid,
-            visibility: values.visibility,
-            targetProgram:
-              values.visibility === 'PROGRAM_SPECIFIC'
-                ? values.targetProgram
-                : null,
-          };
+      await new Promise<void>((resolve, reject) => {
+        uploadTask.on(
+          'state_changed',
+          (snapshot) => {
+            const progress =
+              snapshot.totalBytes > 0
+                ? (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+                : 0;
+            setUploadProgress(progress);
+          },
+          (error) => {
+            console.error('Upload failed:', error);
+            toast({
+              variant: 'destructive',
+              title: 'Upload Failed',
+              description:
+                'An error occurred during upload. Please check storage rules and network.',
+            });
+            reject(error);
+          },
+          async () => {
+            try {
+              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+              const docData = {
+                filename: file.name,
+                category: values.category,
+                description: values.description,
+                downloadURL: downloadURL,
+                uploadedAt: serverTimestamp(),
+                uploaderId: user.uid,
+                visibility: values.visibility,
+                targetProgram:
+                  values.visibility === 'PROGRAM_SPECIFIC'
+                    ? values.targetProgram
+                    : null,
+              };
 
-          await addDoc(collection(db, 'Documents'), docData);
+              await addDoc(collection(db, 'Documents'), docData);
 
-          toast({
-            title: 'Success',
-            description: 'Document uploaded successfully.',
-          });
-          form.reset();
-          if (fileInputRef.current) {
-            fileInputRef.current.value = '';
+              toast({
+                title: 'Success',
+                description: 'Document uploaded successfully.',
+              });
+              form.reset();
+              if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+              }
+              resolve();
+            } catch (error) {
+              console.error('Error during upload completion:', error);
+              toast({
+                variant: 'destructive',
+                title: 'Upload Failed',
+                description:
+                  'Could not save document details after upload. The file may have been uploaded but not recorded.',
+              });
+              reject(error);
+            }
           }
-        } catch (error) {
-          console.error('Error during upload completion:', error);
-          toast({
-            variant: 'destructive',
-            title: 'Upload Failed',
-            description: 'Could not save document details after upload. The file may have been uploaded but not recorded.',
-          });
-        } finally {
-          setIsSubmitting(false);
-          setUploadProgress(null);
-        }
-      }
-    );
+        );
+      });
+    } catch (error) {
+      // Errors are already handled and toasted within the promise callbacks.
+      // This catch block prevents an unhandled promise rejection error from bubbling up.
+      console.error('Caught upload process error:', error);
+    } finally {
+      setIsSubmitting(false);
+      setUploadProgress(null);
+    }
   }
+
 
   const handleView = (doc: DocumentType) => {
     window.open(doc.downloadURL, '_blank');
