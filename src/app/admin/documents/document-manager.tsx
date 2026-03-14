@@ -54,7 +54,7 @@ const documentSchema = z.object({
 });
 
 export default function DocumentManager() {
-  const { user } = useUser();
+  const { user, loading: userLoading } = useUser();
   const db = useFirestore();
   const storage = useStorage();
   const { toast } = useToast();
@@ -76,10 +76,13 @@ export default function DocumentManager() {
   ], []);
 
   const documentConstraints = useMemo(() => [orderBy('uploadedAt', 'desc')], []);
-  const { data: firestoreDocs, loading } = useCollection<DocumentType>('Documents', {
+  const { data: firestoreDocs, loading: docsLoading } = useCollection<DocumentType>('Documents', {
     constraints: documentConstraints,
     listen: true,
+    skip: userLoading || !user,
   });
+
+  const loading = userLoading || docsLoading;
 
   const filteredDocuments = useMemo(() => {
     let docs = firestoreDocs || [];
