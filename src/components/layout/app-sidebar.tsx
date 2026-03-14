@@ -36,7 +36,10 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <Logo brand="CICS" name="DocHub" isDark />
+        <div className="flex flex-col">
+            <Logo brand="CICS" name="DocHub" isDark />
+            <span className="text-xs text-sidebar-foreground/60 font-medium pl-12 -mt-1">Student</span>
+        </div>
       </SidebarHeader>
       <SidebarContent className="px-2">
         <SidebarMenu>
