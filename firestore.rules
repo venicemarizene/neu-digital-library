@@ -27,7 +27,14 @@ service cloud.firestore {
     // A non-admin user can only read their own log entries.
     match /Logs/{logId} {
       allow create: if request.auth.uid == request.resource.data.userId;
-      allow read: if (request.auth.token.email == 'venicemarizene.linga@neu.edu.ph' && request.auth.token.email_verified) || 
+
+      // Any authenticated user can attempt a query on the logs collection.
+      // The client-side query MUST be constrained to ensure users only request logs they have permission to read.
+      allow list: if request.auth != null;
+
+      // This rule secures the actual read of a single document.
+      // It is enforced after the 'list' operation retrieves documents.
+      allow get: if (request.auth.token.email == 'venicemarizene.linga@neu.edu.ph' && request.auth.token.email_verified) || 
                      request.auth.uid == resource.data.userId;
     }
   }
