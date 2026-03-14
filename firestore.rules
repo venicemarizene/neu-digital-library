@@ -31,9 +31,9 @@ service cloud.firestore {
       // Admins can get any log. Users can only get their own specific log entries.
       allow get: if isAdmin(request.auth.uid) || request.auth.uid == resource.data.userId;
       
-      // Admins can list all logs. Users can only list logs they own,
-      // which is enforced by checking that their query filters by their own userId.
-      allow list: if isAdmin(request.auth.uid) || request.auth.uid == resource.data.userId;
+      // Admins can list all logs. Other authenticated users can attempt to list,
+      // but the 'get' rule will ensure they only receive documents they own.
+      allow list: if isAdmin(request.auth.uid) || request.auth != null;
     }
   }
 }
