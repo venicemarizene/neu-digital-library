@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -62,6 +62,7 @@ export default function DocumentManager() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [programFilter, setProgramFilter] = useState('ALL');
   const [downloading, setDownloading] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const programFilterOptions = useMemo(() => [
     { label: "All Programs", value: "ALL" },
@@ -208,8 +209,6 @@ export default function DocumentManager() {
     }
   };
 
-  const fileRef = form.register("file");
-
   return (
     <div className="flex flex-col gap-8">
       <div>
@@ -224,11 +223,35 @@ export default function DocumentManager() {
                 <FormField
                   control={form.control}
                   name="file"
-                  render={() => (
+                  render={({ field: { onChange, value, ...rest } }) => (
                     <FormItem>
                       <FormLabel>Document File (PDF)</FormLabel>
                       <FormControl>
-                        <Input type="file" accept=".pdf" {...fileRef} />
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="file"
+                            accept=".pdf"
+                            className="hidden"
+                            ref={fileInputRef}
+                            onChange={(e) => onChange(e.target.files)}
+                            onBlur={rest.onBlur}
+                            name={rest.name}
+                            disabled={rest.disabled}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            <Upload className="mr-2 h-4 w-4" />
+                            Choose File
+                          </Button>
+                          {value?.[0] && (
+                            <span className="text-sm text-muted-foreground truncate">
+                              {value[0].name}
+                            </span>
+                          )}
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
