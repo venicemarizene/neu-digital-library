@@ -4,7 +4,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { collection, addDoc, serverTimestamp, deleteDoc, doc as firestoreDoc, Timestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { useUser, useFirestore, useStorage, useCollection } from '@/firebase';
 import type { Document as DocumentType } from '@/lib/types';
 import { orderBy } from 'firebase/firestore';
@@ -22,6 +22,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { Progress } from '@/components/ui/progress';
 
 const programs = [
   'Bachelor of Library and Information Science (BSLIS)',
@@ -58,6 +59,7 @@ export default function DocumentManager() {
   const storage = useStorage();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [programFilter, setProgramFilter] = useState('ALL');
@@ -117,41 +119,79 @@ export default function DocumentManager() {
     name: 'visibility'
   });
 
-  async function onSubmit(values: z.infer<typeof documentSchema>) {
-    if (!user) {
-      toast({ variant: 'destructive', title: 'Error', description: 'You are not authenticated.' });
+  function onSubmit(values: z.infer<typeof documentSchema>) {
+    if (!user || !db || !storage) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Authentication or service error.',
+      });
       return;
     }
     setIsSubmitting(true);
-    try {
-      const file = values.file[0];
-      const storageRef = ref(storage, `cics_docs/${file.name}`);
-      const uploadResult = await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(uploadResult.ref);
+    setUploadProgress(0);
 
-      await addDoc(collection(db, 'Documents'), {
-        filename: file.name,
-        category: values.category,
-        description: values.description,
-        downloadURL: downloadURL,
-        uploadedAt: serverTimestamp(),
-        uploaderId: user.uid,
-        visibility: values.visibility,
-        targetProgram: values.visibility === 'PROGRAM_SPECIFIC' ? values.targetProgram : null,
-      });
+    const file = values.file[0];
+    const storageRef = ref(storage, `cics_docs/${file.name}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
 
-      toast({ title: 'Success', description: 'Document uploaded successfully.' });
-      form.reset();
-    } catch (error: any) {
-      console.error('Error uploading document:', error);
-      let description = 'Could not upload document.';
-      if (error.code === 'storage/object-not-found') {
-        description = 'File not found during upload process.';
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        const progress =
+          (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        setUploadProgress(progress);
+      },
+      (error) => {
+        console.error('Upload failed:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Upload Failed',
+          description: error.message,
+        });
+        setIsSubmitting(false);
+        setUploadProgress(null);
+      },
+      () => {
+        getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
+          try {
+            await addDoc(collection(db, 'Documents'), {
+              filename: file.name,
+              category: values.category,
+              description: values.description,
+              downloadURL: downloadURL,
+              uploadedAt: serverTimestamp(),
+              uploaderId: user.uid,
+              visibility: values.visibility,
+              targetProgram:
+                values.visibility === 'PROGRAM_SPECIFIC'
+                  ? values.targetProgram
+                  : null,
+            });
+
+            toast({
+              title: 'Success',
+              description: 'Document uploaded successfully.',
+            });
+            form.reset();
+            // Clear the file input visually
+            if (fileInputRef.current) {
+              fileInputRef.current.value = '';
+            }
+          } catch (dbError: any) {
+            console.error('Firestore save failed:', dbError);
+            toast({
+              variant: 'destructive',
+              title: 'Save Failed',
+              description: 'Could not save document details.',
+            });
+          } finally {
+            setIsSubmitting(false);
+            setUploadProgress(null);
+          }
+        });
       }
-      toast({ variant: 'destructive', title: 'Upload Failed', description });
-    } finally {
-      setIsSubmitting(false);
-    }
+    );
   }
 
   const handleView = (doc: DocumentType) => {
@@ -352,10 +392,18 @@ export default function DocumentManager() {
                     />
                 )}
 
-                <Button type="submit" disabled={isSubmitting} className="w-full">
-                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                  Upload Document
-                </Button>
+                <div className="space-y-2">
+                  <Button type="submit" disabled={isSubmitting} className="w-full">
+                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                    {isSubmitting ? 'Uploading...' : 'Upload Document'}
+                  </Button>
+                  {isSubmitting && uploadProgress !== null && (
+                      <div className="space-y-1">
+                          <Progress value={uploadProgress} className="w-full" />
+                          <p className="text-xs text-muted-foreground text-center">{Math.round(uploadProgress)}% complete</p>
+                      </div>
+                  )}
+                </div>
               </form>
             </Form>
           </CardContent>
