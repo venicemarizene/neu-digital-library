@@ -217,7 +217,7 @@ export default function DocumentList() {
               </div>
               <div>
                 <Badge className={`font-semibold border-transparent ${doc.visibility === 'ALL_CICS' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}`}>
-                  {doc.visibility === 'ALL_CICS' ? 'PUBLIC' : 'STUDENT'}
+                  {doc.visibility === 'ALL_CICS' ? 'All CICS' : 'Program-specified'}
                 </Badge>
               </div>
               <p className="text-muted-foreground text-sm">
@@ -296,7 +296,7 @@ export default function DocumentList() {
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-card-foreground">Visibility:</span>
                   <Badge className={`font-semibold border-transparent ${doc.visibility === 'ALL_CICS' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}`}>
-                    {doc.visibility === 'ALL_CICS' ? 'PUBLIC' : 'STUDENT'}
+                    {doc.visibility === 'ALL_CICS' ? 'All CICS' : 'Program-specified'}
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
