@@ -135,44 +135,24 @@ export default function DocumentManager() {
     setIsSubmitting(true);
     setUploadProgress(0);
 
-    const storageRef = ref(storage, `cics_docs/${file.name}`);
-    console.log('Storage Ref Path:', storageRef.fullPath);
+    try {
+        const storageRef = ref(storage, `cics_docs/${file.name}`);
+        console.log('Storage Ref Path:', storageRef.fullPath);
+        
+        const uploadTask = uploadBytesResumable(storageRef, file);
 
-    const uploadTask = uploadBytesResumable(storageRef, file);
-
-    const uploadPromise = new Promise<string>((resolve, reject) => {
-        uploadTask.on(
-            'state_changed',
+        uploadTask.on('state_changed', 
             (snapshot) => {
                 const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
                 console.log('Upload is ' + progress + '% done');
                 setUploadProgress(progress);
-            },
-            (error) => {
-                console.error('Upload failed during state change:', error);
-                // Comprehensive error catching
-                switch (error.code) {
-                    case 'storage/unauthorized':
-                        console.error("User doesn't have permission to access the object");
-                        break;
-                    case 'storage/canceled':
-                        console.error("User canceled the upload");
-                        break;
-                    case 'storage/unknown':
-                        console.error("Unknown error occurred, inspect error.serverResponse");
-                        break;
-                }
-                reject(error);
-            },
-            () => {
-                console.log('Upload finished. Getting download URL...');
-                getDownloadURL(uploadTask.snapshot.ref).then(resolve).catch(reject);
             }
         );
-    });
 
-    try {
-        const downloadURL = await uploadPromise;
+        await uploadTask;
+
+        console.log('Upload finished. Getting download URL...');
+        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
         console.log('File available at', downloadURL);
 
         const docData = {
@@ -197,13 +177,32 @@ export default function DocumentManager() {
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
-    } catch (error) {
+
+    } catch (error: any) {
         console.error("An error occurred during the upload process:", error);
+        
+        let description = 'Could not upload document. Check console for details.';
+        switch (error.code) {
+            case 'storage/unauthorized':
+                description = "Permission denied. You might not have access to upload to this location.";
+                console.error("User doesn't have permission to access the object");
+                break;
+            case 'storage/canceled':
+                description = "The upload was canceled.";
+                console.error("User canceled the upload");
+                break;
+            case 'storage/unknown':
+                description = "An unknown error occurred during upload.";
+                console.error("Unknown error occurred, inspect error.serverResponse");
+                break;
+        }
+
         toast({
             variant: 'destructive',
             title: 'Upload Failed',
-            description: 'Could not upload document. Check console for details.',
+            description: description,
         });
+
     } finally {
         setIsSubmitting(false);
         setUploadProgress(null);
