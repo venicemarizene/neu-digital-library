@@ -384,13 +384,13 @@ export default function DocumentList() {
                 ))}
             </div>
             <div className="flex items-center gap-2">
-                <Button variant={view === 'grid' ? 'default' : 'outline'} size="icon" onClick={() => setView('grid')}>
-                    <LayoutGrid className="h-5 w-5" />
-                    <span className="sr-only">Grid View</span>
+                <Button variant={view === 'grid' ? 'default' : 'outline'} onClick={() => setView('grid')}>
+                    <LayoutGrid className="mr-2 h-4 w-4" />
+                    Grid
                 </Button>
-                <Button variant={view === 'list' ? 'default' : 'outline'} size="icon" onClick={() => setView('list')}>
-                    <List className="h-5 w-5" />
-                    <span className="sr-only">List View</span>
+                <Button variant={view === 'list' ? 'default' : 'outline'} onClick={() => setView('list')}>
+                    <List className="mr-2 h-4 w-4" />
+                    List
                 </Button>
             </div>
         </div>
