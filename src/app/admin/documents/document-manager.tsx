@@ -120,98 +120,90 @@ export default function DocumentManager() {
   });
 
   async function onSubmit(values: z.infer<typeof documentSchema>) {
-    const file = values.file[0];
-    console.log('Upload started for:', file.name);
-
-    if (!user || !db || !storage) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Authentication or Firebase services not available.' });
-        return;
+    const file = values.file?.[0];
+    if (!file) {
+      toast({ variant: 'destructive', title: 'Error', description: 'No file selected.' });
+      return;
     }
-
+  
+    if (!user || !db || !storage) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Firebase services not ready.' });
+      return;
+    }
+  
     setIsSubmitting(true);
     setUploadProgress(0);
-
-    const storageRef = ref(storage, `cics_docs/${file.name}`);
-    console.log('Storage Ref Path:', storageRef.fullPath);
+  
+    const storageRef = ref(storage, `cics_docs/${Date.now()}_${file.name}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
-
-    uploadTask.on('state_changed',
-        (snapshot) => {
-            const progress = (snapshot.totalBytes > 0)
-                ? (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-                : 0;
-            console.log('Upload is ' + progress + '% done');
-            setUploadProgress(progress);
-        },
-        (error) => {
-            console.error("Upload failed:", error);
-            
-            let description = 'Could not upload document. Check console for details.';
-            switch (error.code) {
-                case 'storage/unauthorized':
-                    description = "Permission denied. Please check Firebase Storage rules.";
-                    break;
-                case 'storage/canceled':
-                    description = "The upload was canceled.";
-                    break;
-                case 'storage/unknown':
-                default:
-                    description = `An unknown storage error occurred: ${error.message}`;
-                    break;
-            }
-
-            toast({
-                variant: 'destructive',
-                title: 'Upload Failed',
-                description: description,
-            });
-
-            setIsSubmitting(false);
-            setUploadProgress(null);
-        },
-        async () => {
-            try {
-                console.log('Upload finished. Getting download URL...');
-                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                console.log('File available at', downloadURL);
-
-                const docData = {
-                    filename: file.name,
-                    category: values.category,
-                    description: values.description,
-                    downloadURL: downloadURL,
-                    uploadedAt: serverTimestamp(),
-                    uploaderId: user.uid,
-                    visibility: values.visibility,
-                    targetProgram: values.visibility === 'PROGRAM_SPECIFIC' ? values.targetProgram : null,
-                };
-                
-                await addDoc(collection(db, 'Documents'), docData);
-                console.log('Document metadata saved to Firestore.');
-
-                toast({
-                    title: 'Success',
-                    description: 'Document uploaded successfully.',
-                });
-                
-                form.reset();
-                if (fileInputRef.current) {
-                    fileInputRef.current.value = '';
-                }
-                setIsSubmitting(false);
-                setUploadProgress(null);
-
-            } catch (error) {
-                console.error("Error during upload finalization:", error);
-                toast({
-                    variant: 'destructive',
-                    title: 'Finalization Failed',
-                    description: 'The file uploaded, but saving its record failed. Please try again.',
-                });
-                setIsSubmitting(false);
-                setUploadProgress(null);
-            }
+  
+    uploadTask.on(
+      "state_changed",
+      (snapshot) => {
+        const progress = (snapshot.totalBytes > 0)
+          ? (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+          : 0;
+        setUploadProgress(progress);
+      },
+      (error) => {
+        console.error("Upload failed:", error);
+        let description = 'Could not upload document.';
+        switch (error.code) {
+          case 'storage/unauthorized':
+            description = "Permission denied. Check Firebase Storage rules.";
+            break;
+          case 'storage/canceled':
+            description = "The upload was canceled.";
+            break;
+          default:
+            description = "An unknown error occurred. Please check the console.";
+            break;
         }
+        toast({
+          variant: 'destructive',
+          title: 'Upload Failed',
+          description,
+        });
+        setIsSubmitting(false);
+        setUploadProgress(null);
+      },
+      async () => {
+        try {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+  
+          const docData = {
+            filename: file.name,
+            category: values.category,
+            description: values.description,
+            downloadURL: downloadURL,
+            uploadedAt: serverTimestamp(),
+            uploaderId: user.uid,
+            visibility: values.visibility,
+            targetProgram: values.visibility === 'PROGRAM_SPECIFIC' ? values.targetProgram : null,
+          };
+  
+          await addDoc(collection(db, 'Documents'), docData);
+  
+          toast({
+            title: 'Success!',
+            description: `"${file.name}" has been uploaded.`,
+          });
+          form.reset();
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+        } catch (error) {
+          console.error("Error saving document metadata:", error);
+          toast({
+            variant: 'destructive',
+            title: 'Finalization Failed',
+            description: 'The file uploaded, but saving its record failed.',
+          });
+        } finally {
+          setIsSubmitting(false);
+          setUploadProgress(null);
+        }
+      }
     );
   }
 
