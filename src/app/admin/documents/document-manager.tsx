@@ -20,6 +20,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Trash2, Upload, FileText, Globe, Users, Eye, Download, Search } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const programs = [
   'Bachelor of Library and Information Science (BSLIS)',
@@ -204,17 +206,31 @@ export default function DocumentManager() {
 
   const handleDelete = async (docToDelete: DocumentType) => {
     if (docToDelete.id.startsWith('mock-')) {
-        toast({ variant: 'destructive', title: 'Action Not Allowed', description: 'Sample documents cannot be deleted.' });
-        return;
+      toast({ variant: 'destructive', title: 'Action Not Allowed', description: 'Sample documents cannot be deleted.' });
+      return;
     }
+    if (!db || !storage) return;
+
+    const docRef = firestoreDoc(db, 'Documents', docToDelete.id);
     try {
-      await deleteDoc(firestoreDoc(db, 'Documents', docToDelete.id));
+      await deleteDoc(docRef);
       const storageRef = ref(storage, `cics_docs/${docToDelete.filename}`);
       await deleteObject(storageRef);
       toast({ title: 'Success', description: 'Document deleted successfully.' });
-    } catch (error) {
-      console.error('Error deleting document:', error);
-      toast({ variant: 'destructive', title: 'Delete Failed', description: 'Could not delete document.' });
+    } catch (error: any) {
+      if (error.name === 'FirebaseError' && error.code === 'permission-denied') {
+        const permissionError = new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      } else {
+        toast({ 
+          variant: 'destructive', 
+          title: 'Delete Failed', 
+          description: error.message || 'Could not delete document.' 
+        });
+      }
     }
   };
 
