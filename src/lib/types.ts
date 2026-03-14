@@ -22,6 +22,7 @@ export interface Document {
   visibility?: 'ALL_CICS' | 'PROGRAM_SPECIFIC';
   targetProgram?: string;
   description?: string;
+  storagePath?: string;
 }
 
 export interface DownloadLog {

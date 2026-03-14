@@ -4,8 +4,8 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { collection, addDoc, serverTimestamp, deleteDoc, doc as firestoreDoc, Timestamp } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
-import { useUser, useFirestore, useStorage, useCollection } from '@/firebase';
+import { useUser, useFirestore, useCollection } from '@/firebase';
+import { supabase } from '@/lib/supabaseClient';
 import type { Document as DocumentType } from '@/lib/types';
 import { orderBy } from 'firebase/firestore';
 import { format } from 'date-fns';
@@ -56,10 +56,8 @@ const documentSchema = z.object({
 export default function DocumentManager() {
   const { user, loading: userLoading } = useUser();
   const db = useFirestore();
-  const storage = useStorage();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [programFilter, setProgramFilter] = useState('ALL');
@@ -129,99 +127,75 @@ export default function DocumentManager() {
       return;
     }
   
-    if (!user || !db || !storage) {
+    if (!user || !db) {
       toast({ variant: 'destructive', title: 'Error', description: 'Firebase services not ready.' });
       return;
     }
   
     setIsSubmitting(true);
-    setUploadProgress(0);
   
-    const storageRef = ref(storage, `cics_docs/${Date.now()}_${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
-  
-    uploadTask.on(
-      "state_changed",
-      (snapshot) => {
-        const progress = (snapshot.totalBytes > 0)
-          ? (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-          : 0;
-        setUploadProgress(progress);
-      },
-      (error) => {
-        console.error("Upload failed:", error);
-        let description = 'Could not upload document.';
-        switch (error.code) {
-          case 'storage/unauthorized':
-            description = "Permission denied. Check Firebase Storage rules.";
-            break;
-          case 'storage/canceled':
-            description = "The upload was canceled.";
-            break;
-          default:
-            description = "An unknown error occurred. Please check the console.";
-            break;
-        }
-        toast({
-          variant: 'destructive',
-          title: 'Upload Failed',
-          description,
-        });
-        setIsSubmitting(false);
-        setUploadProgress(null);
-      },
-      async () => {
-        try {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-  
-          const docData = {
-            filename: file.name,
-            category: values.category,
-            description: values.description,
-            downloadURL: downloadURL,
-            uploadedAt: serverTimestamp(),
-            uploaderId: user.uid,
-            visibility: values.visibility,
-            targetProgram: values.visibility === 'PROGRAM_SPECIFIC' ? values.targetProgram : null,
-          };
+    const uniqueFileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+    const filePath = `public/${uniqueFileName}`;
 
-          const documentsCollection = collection(db, 'Documents');
-          addDoc(documentsCollection, docData)
-            .then(() => {
-                toast({
-                    title: 'Success!',
-                    description: `"${file.name}" has been uploaded.`,
-                });
-                form.reset();
-                if (fileInputRef.current) {
-                    fileInputRef.current.value = '';
-                }
-            })
-            .catch(async (error) => {
-                const permissionError = new FirestorePermissionError({
-                  path: documentsCollection.path,
-                  operation: 'create',
-                  requestResourceData: docData,
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            })
-            .finally(() => {
-                setIsSubmitting(false);
-                setUploadProgress(null);
-            });
+    const { error: uploadError } = await supabase.storage
+      .from('documents')
+      .upload(filePath, file);
+      
+    if (uploadError) {
+      toast({ variant: 'destructive', title: 'Upload Failed', description: uploadError.message });
+      setIsSubmitting(false);
+      return;
+    }
 
-        } catch (error) {
-          console.error("Error finalizing upload:", error);
+    const { data: urlData } = supabase.storage
+      .from('documents')
+      .getPublicUrl(filePath);
+
+    if (!urlData.publicUrl) {
+      toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not get public URL for the file.' });
+      setIsSubmitting(false);
+      // Attempt to clean up the uploaded file if URL retrieval fails
+      await supabase.storage.from('documents').remove([filePath]);
+      return;
+    }
+    
+    const downloadURL = urlData.publicUrl;
+
+    const docData = {
+      filename: file.name,
+      category: values.category,
+      description: values.description,
+      downloadURL: downloadURL,
+      storagePath: filePath,
+      uploadedAt: serverTimestamp(),
+      uploaderId: user.uid,
+      visibility: values.visibility,
+      targetProgram: values.visibility === 'PROGRAM_SPECIFIC' ? values.targetProgram : null,
+    };
+
+    const documentsCollection = collection(db, 'Documents');
+    addDoc(documentsCollection, docData)
+      .then(() => {
           toast({
-            variant: 'destructive',
-            title: 'Finalization Failed',
-            description: 'Could not get file URL after upload.',
+              title: 'Success!',
+              description: `"${file.name}" has been uploaded.`,
           });
+          form.reset();
+          if (fileInputRef.current) {
+              fileInputRef.current.value = '';
+          }
+      })
+      .catch(async (error) => {
+          const permissionError = new FirestorePermissionError({
+            path: documentsCollection.path,
+            operation: 'create',
+            requestResourceData: docData,
+          });
+          errorEmitter.emit('permission-error', permissionError);
+      })
+      .finally(() => {
           setIsSubmitting(false);
-          setUploadProgress(null);
-        }
-      }
-    );
+      });
   }
 
 
@@ -250,18 +224,29 @@ export default function DocumentManager() {
 
 
   const handleDelete = async (docToDelete: DocumentType) => {
-    if (!db || !storage) return;
+    if (!db) return;
+
+    if (docToDelete.storagePath) {
+        const { error: deleteError } = await supabase.storage
+            .from('documents')
+            .remove([docToDelete.storagePath]);
+        
+        if (deleteError) {
+            console.error("Error deleting file from Supabase Storage:", deleteError);
+            toast({
+                variant: 'destructive',
+                title: 'Storage Delete Failed',
+                description: 'Could not delete the file from storage. It may have already been removed.',
+            });
+        }
+    } else {
+        console.warn(`Document ${docToDelete.id} has no storagePath. Cannot delete from storage.`);
+    }
 
     const docRef = firestoreDoc(db, 'Documents', docToDelete.id);
     try {
-      // Then, delete the file from Firebase Storage
-      const storageRef = ref(storage, `cics_docs/${docToDelete.filename}`);
-      await deleteObject(storageRef);
-      
-      // First, delete the Firestore document
       await deleteDoc(docRef);
-
-      toast({ title: 'Success', description: 'Document deleted successfully.' });
+      toast({ title: 'Success', description: 'Document record deleted successfully.' });
     } catch (error: any) {
       if (error.name === 'FirebaseError' && error.code === 'permission-denied') {
         const permissionError = new FirestorePermissionError({
@@ -270,11 +255,11 @@ export default function DocumentManager() {
         });
         errorEmitter.emit('permission-error', permissionError);
       } else {
-        console.error("Error deleting document:", error);
+        console.error("Error deleting document record:", error);
         toast({ 
           variant: 'destructive', 
           title: 'Delete Failed', 
-          description: error.message || 'Could not delete document.' 
+          description: error.message || 'Could not delete document record.' 
         });
       }
     }
@@ -286,7 +271,7 @@ export default function DocumentManager() {
         <Card>
           <CardHeader>
             <CardTitle>Upload New Document</CardTitle>
-            <CardDescription>Select a PDF and provide its details.</CardDescription>
+            <CardDescription>Select a PDF and provide its details to upload to Supabase.</CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -425,18 +410,10 @@ export default function DocumentManager() {
                     />
                 )}
 
-                <div className="space-y-2">
-                  <Button type="submit" disabled={isSubmitting} className="w-full">
-                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                    {isSubmitting ? 'Uploading...' : 'Upload Document'}
-                  </Button>
-                  {isSubmitting && uploadProgress !== null && (
-                      <div className="space-y-1">
-                          <Progress value={uploadProgress} className="w-full" />
-                          <p className="text-xs text-muted-foreground text-center">{Math.round(uploadProgress)}% complete</p>
-                      </div>
-                  )}
-                </div>
+                <Button type="submit" disabled={isSubmitting} className="w-full">
+                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                  {isSubmitting ? 'Uploading...' : 'Upload Document'}
+                </Button>
               </form>
             </Form>
           </CardContent>
