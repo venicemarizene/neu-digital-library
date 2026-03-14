@@ -9,19 +9,6 @@ import { FileText, Download, Eye, Loader2, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 
-// This mock data is included to ensure that any sample documents referenced in logs are displayed correctly.
-const mockDocuments: (DocumentType & {id: string})[] = [
-  { id: 'mock-handbook', filename: 'CICS Student Handbook.pdf', category: 'Manual', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-01-15T09:00:00')), uploaderId: 'system-seed', description: 'The rules and regulations for CICS students for the current academic year.', visibility: 'ALL_CICS' },
-  { id: 'mock-bslis', filename: 'BSLIS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:00:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Library and Information Science.', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Library and Information Science (BSLIS)' },
-  { id: 'mock-bscs', filename: 'BSCS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:10:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Computer Science.', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Computer Science (BSCS)' },
-  { id: 'mock-bsemc-dat', filename: 'BSEMC-DAT Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:05:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Digital Animation Technology.', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Digital Animation Technology (BSEMC-DAT)' },
-  { id: 'mock-bsemc-gd', filename: 'BSEMC-GD Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:15:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Game Development.', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Game Development (BSEMC-GD)' },
-  { id: 'mock-bsit', filename: 'BSIT Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:20:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Information Technology.', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Information Technology (BSIT)' },
-  { id: 'mock-bsis', filename: 'BSIS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:25:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Information System.', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Information System (BSIS)' },
-  { id: 'mock-faq', filename: 'Internship Requirements FAQ.pdf', category: 'Guide', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-03-10T14:00:00')), uploaderId: 'system-seed', description: 'Frequently asked questions about the CICS internship programs.', visibility: 'ALL_CICS' },
-  { id: 'mock-clearance', filename: 'University Clearance Form.pdf', category: 'Form', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-04-05T11:30:00')), uploaderId: 'system-seed', description: 'Official college clearance form for graduating students.', visibility: 'ALL_CICS' },
-];
-
 export default function StudentDashboard() {
     const { user, isBlocked } = useUser();
     const db = useFirestore();
@@ -65,12 +52,11 @@ export default function StudentDashboard() {
             setLoading(true);
             const docIds = [...new Set(logs.map(log => log.documentId))];
             
-            const firestoreIds = docIds.filter(id => !id.startsWith('mock-'));
             let fetchedDocs: DocumentType[] = [];
 
-            if (firestoreIds.length > 0) {
+            if (docIds.length > 0) {
                 try {
-                    const docsQuery = query(collection(db, 'Documents'), where(documentId(), 'in', firestoreIds));
+                    const docsQuery = query(collection(db, 'Documents'), where(documentId(), 'in', docIds));
                     const docSnapshots = await getDocs(docsQuery);
                     fetchedDocs = docSnapshots.docs.map(doc => ({ id: doc.id, ...doc.data() } as DocumentType));
                 } catch (error) {
@@ -78,10 +64,7 @@ export default function StudentDashboard() {
                 }
             }
             
-            const mockDocsInLog = mockDocuments.filter(md => docIds.includes(md.id));
-            
-            const allDocsData = [...fetchedDocs, ...mockDocsInLog];
-            const docsMap = new Map(allDocsData.map(doc => [doc.id, doc]));
+            const docsMap = new Map(fetchedDocs.map(doc => [doc.id, doc]));
 
             const sortedDocs = logs
                 .map(log => docsMap.get(log.documentId))
@@ -97,16 +80,12 @@ export default function StudentDashboard() {
     }, [logs, db, loadingLogs]);
     
     const handleView = async (doc: DocumentType) => {
-        if ((doc as any).id.startsWith('mock-')) {
-            toast({ variant: 'default', title: 'Sample Document', description: 'This is a sample document for demonstration purposes.' });
-            return;
-        }
         if (isBlocked) {
             toast({ variant: 'destructive', title: 'Account Restricted', description: 'Your account is restricted from viewing files.' });
             return;
         }
 
-        if (user && db && !doc.id.startsWith('mock-')) {
+        if (user && db) {
             try {
                 await addDoc(collection(db, 'Logs'), {
                     userId: user.uid,
@@ -123,10 +102,6 @@ export default function StudentDashboard() {
     };
 
     const handleDownload = async (doc: DocumentType) => {
-        if ((doc as any).id.startsWith('mock-')) {
-            toast({ variant: 'default', title: 'Sample Document', description: 'This is a sample document for demonstration purposes.' });
-            return;
-        }
         if (!user) {
             toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to download files.' });
             return;

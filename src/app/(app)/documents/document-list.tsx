@@ -16,18 +16,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 const categories = ['All', 'Curriculum', 'Manual', 'Form', 'Guide'];
 
-const mockDocuments: (DocumentType & {id: string})[] = [
-  { id: 'mock-handbook', filename: 'CICS Student Handbook.pdf', category: 'Manual', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-01-15T09:00:00')), uploaderId: 'system-seed', description: 'The rules and regulations for CICS students for the current academic year.', visibility: 'ALL_CICS' },
-  { id: 'mock-bslis', filename: 'BSLIS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:00:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Library and Information Science.', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Library and Information Science (BSLIS)' },
-  { id: 'mock-bscs', filename: 'BSCS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:10:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Computer Science.', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Computer Science (BSCS)' },
-  { id: 'mock-bsemc-dat', filename: 'BSEMC-DAT Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:05:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Digital Animation Technology.', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Digital Animation Technology (BSEMC-DAT)' },
-  { id: 'mock-bsemc-gd', filename: 'BSEMC-GD Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:15:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Game Development.', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Game Development (BSEMC-GD)' },
-  { id: 'mock-bsit', filename: 'BSIT Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:20:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Information Technology.', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Information Technology (BSIT)' },
-  { id: 'mock-bsis', filename: 'BSIS Curriculum.pdf', category: 'Curriculum', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-02-01T10:25:00')), uploaderId: 'system-seed', description: 'The official program sequence for Bachelor of Science in Information System.', visibility: 'PROGRAM_SPECIFIC', targetProgram: 'Bachelor of Science in Information System (BSIS)' },
-  { id: 'mock-faq', filename: 'Internship Requirements FAQ.pdf', category: 'Guide', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-03-10T14:00:00')), uploaderId: 'system-seed', description: 'Frequently asked questions about the CICS internship programs.', visibility: 'ALL_CICS' },
-  { id: 'mock-clearance', filename: 'University Clearance Form.pdf', category: 'Form', downloadURL: '#', uploadedAt: Timestamp.fromDate(new Date('2024-04-05T11:30:00')), uploaderId: 'system-seed', description: 'Official college clearance form for graduating students.', visibility: 'ALL_CICS' },
-];
-
 export default function DocumentList() {
   const { user, appUser, isBlocked, loading: userLoading } = useUser();
   const db = useFirestore();
@@ -67,20 +55,9 @@ export default function DocumentList() {
   const allDocuments = useMemo(() => {
     const firestoreDocs = [...(allCicsDocs || []), ...(programDocs || [])];
     const uniqueFirestoreDocs = Array.from(new Map(firestoreDocs.map(doc => [doc.id, doc])).values());
-
-    const existingFilenames = new Set(uniqueFirestoreDocs.map(d => d.filename));
-
-    const documentsToAdd = mockDocuments.filter(md => {
-      if (existingFilenames.has(md.filename)) return false;
-      
-      if (md.visibility === 'ALL_CICS') return true;
-      if (md.visibility === 'PROGRAM_SPECIFIC' && md.targetProgram === appUser?.program) return true;
-      
-      return false;
-    });
     
-    return [...documentsToAdd, ...uniqueFirestoreDocs].sort((a, b) => (b.uploadedAt as any) - (a.uploadedAt as any));
-  }, [allCicsDocs, programDocs, appUser?.program]);
+    return uniqueFirestoreDocs.sort((a, b) => (b.uploadedAt as any) - (a.uploadedAt as any));
+  }, [allCicsDocs, programDocs]);
   
   const filteredDocuments = useMemo(() => {
     let docs = allDocuments;
@@ -97,16 +74,12 @@ export default function DocumentList() {
   }, [allDocuments, searchTerm, activeCategory]);
 
   const handleView = async (doc: DocumentType) => {
-    if ((doc as any).id.startsWith('mock-')) {
-        toast({ variant: 'default', title: 'Sample Document', description: 'This is a sample document for demonstration purposes.' });
-        return;
-    }
     if (isBlocked) {
       toast({ variant: 'destructive', title: 'Account Restricted', description: 'Your account is restricted from viewing files.' });
       return;
     }
 
-    if (user && db && !doc.id.startsWith('mock-')) {
+    if (user && db) {
         try {
             await addDoc(collection(db, 'Logs'), {
                 userId: user.uid,
@@ -123,10 +96,6 @@ export default function DocumentList() {
   };
 
   const handleDownload = async (doc: DocumentType) => {
-    if ((doc as any).id.startsWith('mock-')) {
-        toast({ variant: 'default', title: 'Sample Document', description: 'This is a sample document for demonstration purposes.' });
-        return;
-    }
     if (!user) {
       toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to download files.' });
       return;
