@@ -124,11 +124,7 @@ export default function DocumentManager() {
     console.log('Upload started for:', file.name);
 
     if (!user || !db || !storage) {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'Authentication or Firebase services not available.',
-        });
+        toast({ variant: 'destructive', title: 'Error', description: 'Authentication or Firebase services not available.' });
         return;
     }
 
@@ -138,22 +134,34 @@ export default function DocumentManager() {
     try {
         const storageRef = ref(storage, `cics_docs/${file.name}`);
         console.log('Storage Ref Path:', storageRef.fullPath);
-        
         const uploadTask = uploadBytesResumable(storageRef, file);
 
-        uploadTask.on('state_changed', 
-            (snapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                console.log('Upload is ' + progress + '% done');
-                setUploadProgress(progress);
-            }
-        );
-
-        await uploadTask;
-
-        console.log('Upload finished. Getting download URL...');
-        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-        console.log('File available at', downloadURL);
+        const downloadURL = await new Promise<string>((resolve, reject) => {
+            uploadTask.on('state_changed',
+                (snapshot) => {
+                    const progress = (snapshot.totalBytes > 0)
+                        ? (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+                        : 0;
+                    console.log('Upload is ' + progress + '% done');
+                    setUploadProgress(progress);
+                },
+                (error) => {
+                    console.error("Upload task error listener caught:", error);
+                    reject(error);
+                },
+                async () => {
+                    try {
+                        console.log('Upload finished. Getting download URL...');
+                        const url = await getDownloadURL(uploadTask.snapshot.ref);
+                        console.log('File available at', url);
+                        resolve(url);
+                    } catch (getUrlError) {
+                        console.error("Error getting download URL:", getUrlError);
+                        reject(getUrlError);
+                    }
+                }
+            );
+        });
 
         const docData = {
             filename: file.name,
@@ -179,22 +187,22 @@ export default function DocumentManager() {
         }
 
     } catch (error: any) {
-        console.error("An error occurred during the upload process:", error);
+        console.error("An error occurred in the onSubmit process:", error);
         
         let description = 'Could not upload document. Check console for details.';
-        switch (error.code) {
-            case 'storage/unauthorized':
-                description = "Permission denied. You might not have access to upload to this location.";
-                console.error("User doesn't have permission to access the object");
-                break;
-            case 'storage/canceled':
-                description = "The upload was canceled.";
-                console.error("User canceled the upload");
-                break;
-            case 'storage/unknown':
-                description = "An unknown error occurred during upload.";
-                console.error("Unknown error occurred, inspect error.serverResponse");
-                break;
+        if (error.code) { // Firebase error
+            switch (error.code) {
+                case 'storage/unauthorized':
+                    description = "Permission denied. Please check Firebase Storage rules.";
+                    break;
+                case 'storage/canceled':
+                    description = "The upload was canceled.";
+                    break;
+                case 'storage/unknown':
+                default:
+                    description = `An unknown storage error occurred: ${error.message}`;
+                    break;
+            }
         }
 
         toast({
@@ -202,7 +210,6 @@ export default function DocumentManager() {
             title: 'Upload Failed',
             description: description,
         });
-
     } finally {
         setIsSubmitting(false);
         setUploadProgress(null);
@@ -292,12 +299,13 @@ export default function DocumentManager() {
                             onChange={(e) => onChange(e.target.files)}
                             onBlur={rest.onBlur}
                             name={rest.name}
-                            disabled={rest.disabled}
+                            disabled={rest.disabled || isSubmitting}
                           />
                           <Button
                             type="button"
                             variant="outline"
                             onClick={() => fileInputRef.current?.click()}
+                            disabled={isSubmitting}
                           >
                             <Upload className="mr-2 h-4 w-4" />
                             Choose File
@@ -319,7 +327,7 @@ export default function DocumentManager() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Category</FormLabel>
-                       <Select onValueChange={field.onChange} defaultValue={field.value}>
+                       <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a category" />
@@ -342,7 +350,7 @@ export default function DocumentManager() {
                     <FormItem>
                       <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Input placeholder="A brief summary of the document." {...field} />
+                        <Input placeholder="A brief summary of the document." {...field} disabled={isSubmitting} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -359,6 +367,7 @@ export default function DocumentManager() {
                           onValueChange={field.onChange}
                           defaultValue={field.value}
                           className="flex flex-col space-y-1"
+                          disabled={isSubmitting}
                         >
                           <FormItem className="flex items-center space-x-3 space-y-0">
                             <FormControl>
@@ -390,7 +399,7 @@ export default function DocumentManager() {
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Target Program</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
                             <FormControl>
                             <SelectTrigger>
                                 <SelectValue placeholder="Select a target program" />
