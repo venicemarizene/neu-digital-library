@@ -10,8 +10,7 @@ import {
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import { usePathname, useRouter } from 'next/navigation';
-import { Users, File, BarChart3, LogOut } from 'lucide-react';
-import { Logo } from '@/components/icons/logo';
+import { Users, File, BarChart3, LogOut, LibraryBig } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { useAuth, useUser } from '@/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -36,9 +35,19 @@ export function AdminSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <div className="flex flex-col">
-            <Logo brand="CICS" name="DocHub" isDark />
-            <span className="text-xs text-sidebar-foreground/60 font-medium pl-12 -mt-1">Admin</span>
+        <div className="flex items-center gap-3">
+          <LibraryBig className="h-10 w-10 flex-shrink-0 text-primary" />
+          <div className="flex flex-col">
+            <div className="flex flex-row items-baseline gap-1.5">
+              <span className="font-headline text-2xl font-bold leading-none tracking-tighter text-accent">
+                CICS
+              </span>
+              <span className="font-headline text-xl font-semibold leading-none text-sidebar-foreground/80">
+                DocHub
+              </span>
+            </div>
+            <span className="text-sm font-medium text-sidebar-foreground/60">Admin</span>
+          </div>
         </div>
       </SidebarHeader>
       <SidebarContent className="px-2">
