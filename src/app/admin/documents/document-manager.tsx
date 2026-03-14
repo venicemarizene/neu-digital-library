@@ -189,32 +189,36 @@ export default function DocumentManager() {
         };
 
         const documentsCollection = collection(db, 'Documents');
-        await addDoc(documentsCollection, docData);
-
-        toast({
-            title: 'Success!',
-            description: `"${file.name}" has been uploaded.`,
+        const docRef = await addDoc(documentsCollection, docData).catch((error) => {
+             if (error.name === 'FirebaseError' && error.code === 'permission-denied') {
+                 const permissionError = new FirestorePermissionError({
+                    path: collection(db, 'Documents').path,
+                    operation: 'create',
+                    requestResourceData: docData
+                 });
+                 errorEmitter.emit('permission-error', permissionError);
+             } else {
+                 throw error; // re-throw other errors
+             }
         });
-        form.reset();
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
+        
+        if (docRef) {
+            toast({
+                title: 'Success!',
+                description: `"${file.name}" has been uploaded.`,
+            });
+            form.reset();
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
         }
     } catch (error: any) {
         console.error("An unexpected error occurred during upload:", error);
-        if (error.name === 'FirebaseError' && error.code === 'permission-denied') {
-             const permissionError = new FirestorePermissionError({
-                path: collection(db, 'Documents').path,
-                operation: 'create',
-                requestResourceData: { /* Data redacted for brevity */ }
-             });
-             errorEmitter.emit('permission-error', permissionError);
-        } else {
-            toast({
-                variant: 'destructive',
-                title: 'An Unexpected Error Occurred',
-                description: 'Could not save the document record. Please check the console.',
-            });
-        }
+        toast({
+            variant: 'destructive',
+            title: 'An Unexpected Error Occurred',
+            description: error.message || 'Could not save the document record. Please check the console.',
+        });
     } finally {
         setIsSubmitting(false);
     }
