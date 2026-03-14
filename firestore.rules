@@ -22,18 +22,12 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin(request.auth.uid);
     }
     
-    // Users can create their own log entries.
-    // Admins can read all log entries.
-    // Users can only read logs associated with their own user ID.
+    // This rule allows a user to create their own log entries.
+    // It also allows a user to read logs that belong to them, or allows an admin to read any log.
+    // This is necessary for both the student dashboard (reading their own logs) and the admin analytics page.
     match /Logs/{logId} {
       allow create: if request.auth.uid == request.resource.data.userId;
-
-      // Admins can get any log. Users can only get their own specific log entries.
-      allow get: if isAdmin(request.auth.uid) || request.auth.uid == resource.data.userId;
-      
-      // Admins can list all logs. Other authenticated users can attempt to list,
-      // but the 'get' rule will ensure they only receive documents they own.
-      allow list: if isAdmin(request.auth.uid) || request.auth != null;
+      allow read: if request.auth.uid == resource.data.userId || isAdmin(request.auth.uid);
     }
   }
 }
