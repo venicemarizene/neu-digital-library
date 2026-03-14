@@ -12,6 +12,8 @@ import { Switch } from '@/components/ui/switch';
 import { Loader2, Users } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { where } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const programOptions = [
   { label: 'All Programs', value: 'All Programs' },
@@ -37,18 +39,30 @@ export default function StudentTable() {
   });
   const [filter, setFilter] = useState('All Programs');
   
-  const handleBlockToggle = async (uid: string, isBlocked: boolean) => {
-    try {
-      const userDocRef = doc(db, 'Users', uid);
-      await updateDoc(userDocRef, { isBlocked: isBlocked });
-      toast({
-        title: 'Success',
-        description: `User has been ${isBlocked ? 'blocked' : 'unblocked'}.`,
-      });
-    } catch (error) {
-      console.error('Error updating user status:', error);
-      toast({ variant: 'destructive', title: 'Update Failed', description: 'Could not update user status.' });
+  const handleBlockToggle = (uid: string, isBlocked: boolean) => {
+    if (!db) {
+      toast({ variant: 'destructive', title: 'Update Failed', description: 'Database not available.' });
+      return;
     }
+    
+    const userDocRef = doc(db, 'Users', uid);
+    const updateData = { isBlocked: isBlocked };
+
+    updateDoc(userDocRef, updateData)
+      .then(() => {
+        toast({
+          title: 'Success',
+          description: `User has been ${isBlocked ? 'blocked' : 'unblocked'}.`,
+        });
+      })
+      .catch((error) => {
+        const permissionError = new FirestorePermissionError({
+          path: userDocRef.path,
+          operation: 'update',
+          requestResourceData: updateData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
   };
 
   const filteredUsers = useMemo(() => {
