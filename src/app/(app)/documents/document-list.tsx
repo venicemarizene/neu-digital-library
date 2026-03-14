@@ -6,7 +6,7 @@ import type { Document as DocumentType } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download, FileText, Loader2, Search, Ban, Eye } from 'lucide-react';
+import { Download, FileText, Loader2, Search, Ban, Eye, LayoutGrid, List } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
@@ -33,6 +33,7 @@ export default function DocumentList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [view, setView] = useState<'grid' | 'list'>('grid');
 
   const allCicsConstraints = useMemo(() => [
     where('visibility', '==', 'ALL_CICS'),
@@ -153,7 +154,7 @@ export default function DocumentList() {
     }
   };
 
-  const renderDocGrid = (docs: DocumentType[]) => (
+  const renderGrid = (docs: DocumentType[]) => (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
       {docs.map((doc) => (
         <Card key={doc.id} className="flex flex-col transition-all hover:shadow-lg">
@@ -187,15 +188,55 @@ export default function DocumentList() {
     </div>
   );
 
+  const renderList = (docs: DocumentType[]) => (
+    <div className="space-y-4">
+      {docs.map((doc) => (
+        <Card key={doc.id} className="transition-all hover:shadow-lg">
+           <CardContent className="p-4 flex items-center justify-between gap-4">
+             <div className="flex items-center gap-4 flex-1 min-w-0">
+               <div className="bg-primary/10 p-2 rounded-md hidden sm:block">
+                 <FileText className="h-6 w-6 flex-shrink-0 text-primary" />
+               </div>
+               <div className="flex-1 min-w-0">
+                 <p className="font-headline font-semibold line-clamp-1">{doc.filename}</p>
+                 <p className="text-sm text-muted-foreground">{doc.category}</p>
+               </div>
+             </div>
+             <div className="flex items-center gap-2 flex-shrink-0">
+                <Button variant="outline" size="sm" onClick={() => handleView(doc as DocumentType)} disabled={isBlocked}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    View
+                </Button>
+                <Button size="sm" onClick={() => handleDownload(doc as DocumentType)} disabled={downloading === doc.id || isBlocked}>
+                  {downloading === doc.id ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="mr-2 h-4 w-4" />
+                  )}
+                  {downloading === doc.id ? 'Downloading' : 'Download'}
+                </Button>
+             </div>
+           </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+
   if (loading) {
     return (
         <div className="space-y-6">
             <div className="flex flex-col gap-4">
                <Skeleton className="h-10 flex-1" />
-                <div className="flex gap-2">
-                    <Skeleton className="h-10 w-20" />
-                    <Skeleton className="h-10 w-20" />
-                    <Skeleton className="h-10 w-20" />
+                <div className="flex justify-between items-center">
+                    <div className="flex gap-2">
+                        <Skeleton className="h-10 w-20" />
+                        <Skeleton className="h-10 w-20" />
+                        <Skeleton className="h-10 w-20" />
+                    </div>
+                    <div className="flex gap-2">
+                        <Skeleton className="h-10 w-10" />
+                        <Skeleton className="h-10 w-10" />
+                    </div>
                 </div>
             </div>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -245,12 +286,24 @@ export default function DocumentList() {
                 disabled={isBlocked}
             />
         </div>
-        <div className="flex gap-2 flex-wrap">
-            {categories.map(cat => (
-                <Button key={cat} variant={activeCategory === cat ? 'default' : 'outline'} onClick={() => setActiveCategory(cat)}>
-                    {cat}
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="flex gap-2 flex-wrap">
+                {categories.map(cat => (
+                    <Button key={cat} variant={activeCategory === cat ? 'default' : 'outline'} onClick={() => setActiveCategory(cat)}>
+                        {cat}
+                    </Button>
+                ))}
+            </div>
+            <div className="flex items-center gap-2">
+                <Button variant={view === 'grid' ? 'default' : 'outline'} size="icon" onClick={() => setView('grid')}>
+                    <LayoutGrid className="h-5 w-5" />
+                    <span className="sr-only">Grid View</span>
                 </Button>
-            ))}
+                <Button variant={view === 'list' ? 'default' : 'outline'} size="icon" onClick={() => setView('list')}>
+                    <List className="h-5 w-5" />
+                    <span className="sr-only">List View</span>
+                </Button>
+            </div>
         </div>
       </div>
 
@@ -263,7 +316,7 @@ export default function DocumentList() {
           </p>
         </div>
       ) : (
-        renderDocGrid(filteredDocuments)
+        view === 'grid' ? renderGrid(filteredDocuments) : renderList(filteredDocuments)
       )}
     </div>
   );
