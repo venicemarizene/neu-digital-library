@@ -225,6 +225,7 @@ export default function DocumentManager() {
         });
         errorEmitter.emit('permission-error', permissionError);
       } else {
+        console.error("Error deleting document:", error);
         toast({ 
           variant: 'destructive', 
           title: 'Delete Failed', 
