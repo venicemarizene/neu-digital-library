@@ -2,24 +2,22 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper function to check if a user is an admin
-    function isAdmin(userId) {
-      // Check for document existence before accessing data to prevent errors.
-      return exists(/databases/$(database)/documents/Users/$(userId)) && 
-             get(/databases/$(database)/documents/Users/$(userId)).data.isAdmin == true;
+    // Helper function to check if the requesting user is an admin based on their verified email.
+    function isRequestingUserAdmin() {
+      return request.auth.token.email == 'venicemarizene.linga@neu.edu.ph' && request.auth.token.email_verified == true;
     }
 
     // Users can only read and write to their own document.
     // Admins can read and write to any user document.
     match /Users/{userId} {
-      allow read, write: if request.auth.uid == userId || isAdmin(request.auth.uid);
+      allow read, write: if request.auth.uid == userId || isRequestingUserAdmin();
     }
 
     // Authenticated users can read documents.
     // Admins can create, update, and delete documents.
     match /Documents/{documentId} {
       allow read: if request.auth != null;
-      allow create, update, delete: if isAdmin(request.auth.uid);
+      allow create, update, delete: if isRequestingUserAdmin();
     }
     
     // This rule allows a user to create their own log entries.
@@ -34,8 +32,7 @@ service cloud.firestore {
 
       // This rule secures the actual read of a single document.
       // It is enforced after the 'list' operation retrieves documents.
-      allow get: if (request.auth.token.email == 'venicemarizene.linga@neu.edu.ph' && request.auth.token.email_verified) || 
-                     request.auth.uid == resource.data.userId;
+      allow get: if isRequestingUserAdmin() || request.auth.uid == resource.data.userId;
     }
   }
 }
