@@ -35,7 +35,7 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <LibraryBig className="h-10 w-10 flex-shrink-0 text-primary" />
           <div className="flex flex-col">
             <div className="flex flex-row items-end gap-1.5">
