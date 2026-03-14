@@ -213,9 +213,13 @@ export default function DocumentManager() {
 
     const docRef = firestoreDoc(db, 'Documents', docToDelete.id);
     try {
+      // First, delete the Firestore document
       await deleteDoc(docRef);
+
+      // Then, delete the file from Firebase Storage
       const storageRef = ref(storage, `cics_docs/${docToDelete.filename}`);
       await deleteObject(storageRef);
+
       toast({ title: 'Success', description: 'Document deleted successfully.' });
     } catch (error: any) {
       if (error.name === 'FirebaseError' && error.code === 'permission-denied') {
@@ -470,7 +474,7 @@ export default function DocumentManager() {
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
                                                     <AlertDialogTrigger asChild>
-                                                        <Button size="icon" variant="outline" className="text-red-500 border border-red-200 hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-colors duration-200" disabled={doc.id.startsWith('mock-')} >
+                                                        <Button size="icon" variant="outline" className="text-red-500 border border-red-200 hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-all duration-200" disabled={doc.id.startsWith('mock-')} >
                                                             <Trash2 className="h-4 w-4" />
                                                             <span className="sr-only">Delete</span>
                                                         </Button>
