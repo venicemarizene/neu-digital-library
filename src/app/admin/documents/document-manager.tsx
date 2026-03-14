@@ -144,18 +144,16 @@ export default function DocumentManager() {
   
     setIsSubmitting(true);
   
-    const uniqueFileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-    const filePath = `public/${uniqueFileName}`;
+    const filePath = `${Date.now()}_${file.name}`;
 
-    const { error: uploadError } = await supabase.storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
       .from('documents')
       .upload(filePath, file, {
         cacheControl: '3600',
-        upsert: false
       });
       
-    if (uploadError) {
-      if (uploadError.message.includes('violates row-level security policy')) {
+    if (uploadError || !uploadData) {
+      if (uploadError?.message.includes('violates row-level security policy')) {
         toast({
             variant: 'destructive',
             title: 'Supabase Permission Error',
@@ -163,7 +161,7 @@ export default function DocumentManager() {
             duration: 10000,
         });
       } else {
-        toast({ variant: 'destructive', title: 'Upload Failed', description: uploadError.message });
+        toast({ variant: 'destructive', title: 'Upload Failed', description: uploadError?.message || 'An unknown error occurred.' });
       }
       setIsSubmitting(false);
       return;
@@ -171,13 +169,13 @@ export default function DocumentManager() {
 
     const { data: urlData } = supabase.storage
       .from('documents')
-      .getPublicUrl(filePath);
+      .getPublicUrl(uploadData.path);
 
     if (!urlData.publicUrl) {
       toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not get public URL for the file.' });
       setIsSubmitting(false);
       // Attempt to clean up the uploaded file if URL retrieval fails
-      await supabase.storage.from('documents').remove([filePath]);
+      await supabase.storage.from('documents').remove([uploadData.path]);
       return;
     }
     
@@ -188,7 +186,7 @@ export default function DocumentManager() {
       category: values.category,
       description: values.description,
       downloadURL: downloadURL,
-      storagePath: filePath,
+      storagePath: uploadData.path,
       uploadedAt: serverTimestamp(),
       uploaderId: user.uid,
       visibility: values.visibility,
