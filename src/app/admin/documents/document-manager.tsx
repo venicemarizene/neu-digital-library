@@ -131,6 +131,16 @@ export default function DocumentManager() {
       toast({ variant: 'destructive', title: 'Error', description: 'Firebase services not ready.' });
       return;
     }
+
+    if (!supabase) {
+      toast({
+        variant: 'destructive',
+        title: 'Supabase Not Configured',
+        description: 'Please provide Supabase credentials in your .env.local file to upload documents.',
+      });
+      setIsSubmitting(false);
+      return;
+    }
   
     setIsSubmitting(true);
   
@@ -227,17 +237,21 @@ export default function DocumentManager() {
     if (!db) return;
 
     if (docToDelete.storagePath) {
-        const { error: deleteError } = await supabase.storage
-            .from('documents')
-            .remove([docToDelete.storagePath]);
-        
-        if (deleteError) {
-            console.error("Error deleting file from Supabase Storage:", deleteError);
-            toast({
-                variant: 'destructive',
-                title: 'Storage Delete Failed',
-                description: 'Could not delete the file from storage. It may have already been removed.',
-            });
+        if (!supabase) {
+          console.warn('Supabase client is not configured, skipping file deletion from storage. The Firestore record will still be deleted.');
+        } else {
+          const { error: deleteError } = await supabase.storage
+              .from('documents')
+              .remove([docToDelete.storagePath]);
+          
+          if (deleteError) {
+              console.error("Error deleting file from Supabase Storage:", deleteError);
+              toast({
+                  variant: 'destructive',
+                  title: 'Storage Delete Failed',
+                  description: 'Could not delete the file from storage. It may have already been removed.',
+              });
+          }
         }
     } else {
         console.warn(`Document ${docToDelete.id} has no storagePath. Cannot delete from storage.`);
