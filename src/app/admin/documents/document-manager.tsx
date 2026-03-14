@@ -181,25 +181,39 @@ export default function DocumentManager() {
             visibility: values.visibility,
             targetProgram: values.visibility === 'PROGRAM_SPECIFIC' ? values.targetProgram : null,
           };
-  
-          await addDoc(collection(db, 'Documents'), docData);
-  
-          toast({
-            title: 'Success!',
-            description: `"${file.name}" has been uploaded.`,
-          });
-          form.reset();
-          if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-          }
+
+          const documentsCollection = collection(db, 'Documents');
+          addDoc(documentsCollection, docData)
+            .then(() => {
+                toast({
+                    title: 'Success!',
+                    description: `"${file.name}" has been uploaded.`,
+                });
+                form.reset();
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
+            })
+            .catch(async (error) => {
+                const permissionError = new FirestorePermissionError({
+                  path: documentsCollection.path,
+                  operation: 'create',
+                  requestResourceData: docData,
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            })
+            .finally(() => {
+                setIsSubmitting(false);
+                setUploadProgress(null);
+            });
+
         } catch (error) {
-          console.error("Error saving document metadata:", error);
+          console.error("Error finalizing upload:", error);
           toast({
             variant: 'destructive',
             title: 'Finalization Failed',
-            description: 'The file uploaded, but saving its record failed.',
+            description: 'Could not get file URL after upload.',
           });
-        } finally {
           setIsSubmitting(false);
           setUploadProgress(null);
         }
