@@ -8,7 +8,6 @@ import {
 } from 'firebase/app';
 import { Auth, getAuth } from 'firebase/auth';
 import { Firestore, getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
-import { getStorage, FirebaseStorage } from 'firebase/storage';
 import { firebaseConfig } from './config';
 import { useUser } from './auth/use-user';
 import { useCollection } from './firestore/use-collection';
@@ -18,7 +17,6 @@ import {
   useFirebaseApp,
   useFirestore,
   useAuth,
-  useStorage,
 } from './provider';
 import { FirebaseClientProvider } from './client-provider';
 
@@ -26,7 +24,6 @@ export interface FirebaseInstances {
   app: FirebaseApp;
   auth: Auth;
   db: Firestore;
-  storage: FirebaseStorage;
 }
 
 async function initializeFirebase(
@@ -35,7 +32,6 @@ async function initializeFirebase(
   const app = getApps().length > 0 ? getApp() : initializeApp(config);
   const auth = getAuth(app);
   const db = getFirestore(app);
-  const storage = getStorage(app);
 
   try {
     // Await persistence to ensure it's set up before the app tries to fetch data.
@@ -53,7 +49,7 @@ async function initializeFirebase(
     }
   }
 
-  return { app, auth, db, storage };
+  return { app, auth, db };
 }
 
 export {
@@ -64,10 +60,9 @@ export {
   useFirebaseApp,
   useFirestore,
   useAuth,
-  useStorage,
   useUser,
   useCollection,
   useDoc,
 };
 
-export type { FirebaseApp, Auth, Firestore, FirebaseStorage };
+export type { FirebaseApp, Auth, Firestore };

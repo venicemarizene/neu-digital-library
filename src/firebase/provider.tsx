@@ -12,13 +12,11 @@ import {
 import { FirebaseApp } from 'firebase/app';
 import { Auth } from 'firebase/auth';
 import { Firestore } from 'firebase/firestore';
-import { FirebaseStorage } from 'firebase/storage';
 
 interface FirebaseContextValue {
   app: FirebaseApp;
   auth: Auth;
   db: Firestore;
-  storage: FirebaseStorage;
 }
 
 // CRITICAL FIX:
@@ -66,11 +64,6 @@ export function useAuth() {
 export function useFirestore() {
   // CRITICAL FIX: Safely access the firestore instance, returning null if not ready.
   return useFirebase()?.db ?? null;
-}
-
-export function useStorage() {
-  // CRITICAL FIX: Safely access the storage instance, returning null if not ready.
-  return useFirebase()?.storage ?? null;
 }
 
 export function withFirebase<T extends object>(
