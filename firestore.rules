@@ -23,11 +23,12 @@ service cloud.firestore {
     }
     
     // This rule allows a user to create their own log entries.
-    // It also allows a user to read logs that belong to them, or allows an admin to read any log.
-    // This is necessary for both the student dashboard (reading their own logs) and the admin analytics page.
+    // An admin (by email) can read any log.
+    // A non-admin user can only read their own log entries.
     match /Logs/{logId} {
       allow create: if request.auth.uid == request.resource.data.userId;
-      allow read: if request.auth.uid == resource.data.userId || isAdmin(request.auth.uid);
+      allow read: if (request.auth.token.email == 'venicemarizene.linga@neu.edu.ph' && request.auth.token.email_verified) || 
+                     request.auth.uid == resource.data.userId;
     }
   }
 }
