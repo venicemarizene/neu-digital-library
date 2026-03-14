@@ -219,15 +219,15 @@ export default function StudentDashboard() {
 
     return (
         <div className="space-y-6">
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'view' | 'download')}>
-                <TabsList>
-                    <TabsTrigger value="view">Recently Viewed</TabsTrigger>
-                    <TabsTrigger value="download">Recently Downloaded</TabsTrigger>
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'view' | 'download')} className="w-full">
+                <TabsList className="w-full justify-start rounded-none bg-transparent p-0 border-b">
+                    <TabsTrigger value="view" className="rounded-none bg-transparent shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary">Recently Viewed</TabsTrigger>
+                    <TabsTrigger value="download" className="rounded-none bg-transparent shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary">Recently Downloaded</TabsTrigger>
                 </TabsList>
             </Tabs>
             
             {documents.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-card py-24 text-center">
+                <div className="flex flex-col items-center justify-center rounded-lg bg-card py-24 text-center shadow-md">
                   <History className="h-12 w-12 text-muted-foreground" />
                   <h3 className="mt-4 text-lg font-semibold">No Recent Activity</h3>
                   <p className="mt-2 text-sm text-muted-foreground">
