@@ -135,75 +135,60 @@ export default function DocumentManager() {
     setIsSubmitting(true);
     setUploadProgress(0);
 
+    const storageRef = ref(storage, `cics_docs/${file.name}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    const uploadPromise = new Promise<string>((resolve, reject) => {
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setUploadProgress(progress);
+        },
+        (error) => {
+          console.error('Upload failed:', error);
+          reject(error);
+        },
+        () => {
+          getDownloadURL(uploadTask.snapshot.ref).then(resolve).catch(reject);
+        }
+      );
+    });
+
     try {
-      const storageRef = ref(storage, `cics_docs/${file.name}`);
-      const uploadTask = uploadBytesResumable(storageRef, file);
+      const downloadURL = await uploadPromise;
 
-      await new Promise<void>((resolve, reject) => {
-        uploadTask.on(
-          'state_changed',
-          (snapshot) => {
-            const progress =
-              snapshot.totalBytes > 0
-                ? (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-                : 0;
-            setUploadProgress(progress);
-          },
-          (error) => {
-            console.error('Upload failed:', error);
-            toast({
-              variant: 'destructive',
-              title: 'Upload Failed',
-              description:
-                'An error occurred during upload. Please check storage rules and network.',
-            });
-            reject(error);
-          },
-          async () => {
-            try {
-              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-              const docData = {
-                filename: file.name,
-                category: values.category,
-                description: values.description,
-                downloadURL: downloadURL,
-                uploadedAt: serverTimestamp(),
-                uploaderId: user.uid,
-                visibility: values.visibility,
-                targetProgram:
-                  values.visibility === 'PROGRAM_SPECIFIC'
-                    ? values.targetProgram
-                    : null,
-              };
+      const docData = {
+        filename: file.name,
+        category: values.category,
+        description: values.description,
+        downloadURL: downloadURL,
+        uploadedAt: serverTimestamp(),
+        uploaderId: user.uid,
+        visibility: values.visibility,
+        targetProgram:
+          values.visibility === 'PROGRAM_SPECIFIC'
+            ? values.targetProgram
+            : null,
+      };
 
-              await addDoc(collection(db, 'Documents'), docData);
+      await addDoc(collection(db, 'Documents'), docData);
 
-              toast({
-                title: 'Success',
-                description: 'Document uploaded successfully.',
-              });
-              form.reset();
-              if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-              }
-              resolve();
-            } catch (error) {
-              console.error('Error during upload completion:', error);
-              toast({
-                variant: 'destructive',
-                title: 'Upload Failed',
-                description:
-                  'Could not save document details after upload. The file may have been uploaded but not recorded.',
-              });
-              reject(error);
-            }
-          }
-        );
+      toast({
+        title: 'Success',
+        description: 'Document uploaded successfully.',
       });
+      form.reset();
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     } catch (error) {
-      // Errors are already handled and toasted within the promise callbacks.
-      // This catch block prevents an unhandled promise rejection error from bubbling up.
-      console.error('Caught upload process error:', error);
+      console.error("Error during upload process:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Upload Failed',
+        description: 'An error occurred. Please check console and Firebase rules.',
+      });
     } finally {
       setIsSubmitting(false);
       setUploadProgress(null);
