@@ -453,7 +453,7 @@ export default function DocumentManager() {
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
                                                     <AlertDialogTrigger asChild>
-                                                        <Button size="icon" variant="outline" className="text-red-500 border border-red-200 hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-all duration-200" disabled={doc.id.startsWith('mock-')} >
+                                                        <Button size="icon" variant="outline" className="text-red-500 border border-red-200 hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-colors duration-200" disabled={doc.id.startsWith('mock-')} >
                                                             <Trash2 className="h-4 w-4" />
                                                             <span className="sr-only">Delete</span>
                                                         </Button>
