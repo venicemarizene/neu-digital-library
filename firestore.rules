@@ -23,10 +23,17 @@ service cloud.firestore {
     }
     
     // Users can create their own log entries.
-    // Admins can read all log entries, and users can read their own logs.
+    // Admins can read all log entries.
+    // Users can only read logs associated with their own user ID.
     match /Logs/{logId} {
       allow create: if request.auth.uid == request.resource.data.userId;
-      allow read: if isAdmin(request.auth.uid) || request.auth.uid == resource.data.userId;
+
+      // Admins can get any log. Users can only get their own specific log entries.
+      allow get: if isAdmin(request.auth.uid) || request.auth.uid == resource.data.userId;
+      
+      // Admins can list all logs. Users can only list logs they own,
+      // which is enforced by checking that their query filters by their own userId.
+      allow list: if isAdmin(request.auth.uid) || request.auth.uid == resource.data.userId;
     }
   }
 }
