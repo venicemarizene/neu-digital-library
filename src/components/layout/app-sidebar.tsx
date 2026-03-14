@@ -10,7 +10,7 @@ import {
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import { usePathname, useRouter } from 'next/navigation';
-import { LibraryBig, User, LogOut } from 'lucide-react';
+import { LibraryBig, User, LogOut, LayoutDashboard } from 'lucide-react';
 import { Logo } from '@/components/icons/logo';
 import { signOut } from 'firebase/auth';
 import { useAuth, useUser } from '@/firebase';
@@ -45,6 +45,16 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent className="px-2">
         <SidebarMenu>
+           <SidebarMenuItem>
+            <SidebarMenuButton
+              isActive={pathname.startsWith('/dashboard')}
+              onClick={() => router.push('/dashboard')}
+              tooltip="Dashboard"
+            >
+              <LayoutDashboard />
+              <span>Dashboard</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               isActive={pathname.startsWith('/documents')}

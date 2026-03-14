@@ -20,7 +20,7 @@ export default function Home() {
       } else if (isAdmin) {
         router.push('/admin/analytics');
       } else {
-        router.push('/documents');
+        router.push('/dashboard');
       }
     }
   }, [user, loading, isProfileComplete, isAdmin, isBlocked, router]);

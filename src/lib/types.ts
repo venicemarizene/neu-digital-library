@@ -31,4 +31,5 @@ export interface DownloadLog {
   downloadedAt: Timestamp;
   documentName?: string;
   userEmail?: string;
+  action?: 'view' | 'download';
 }
