@@ -54,7 +54,7 @@ export default function DocumentList() {
   const { data: allCicsDocs, loading: loadingAll, error: errorAll } = useCollection<DocumentType>('Documents', { 
     constraints: allCicsConstraints, 
     listen: true, 
-    skip: userLoading 
+    skip: userLoading || !user
   });
   const { data: programDocs, loading: loadingProgram, error: errorProgram } = useCollection<DocumentType>('Documents', { 
     constraints: programSpecificConstraints, 
