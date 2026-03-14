@@ -38,7 +38,7 @@ export function AdminSidebar() {
         <div className="flex items-center gap-3">
           <LibraryBig className="h-10 w-10 flex-shrink-0 text-primary" />
           <div className="flex flex-col">
-            <div className="flex flex-row items-baseline gap-1.5">
+            <div className="flex flex-row items-end gap-1.5">
               <span className="font-headline text-2xl font-bold leading-none tracking-tighter text-accent">
                 CICS
               </span>
