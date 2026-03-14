@@ -7,6 +7,8 @@ import {
   FirestoreError,
 } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface UseDocOptions {
   listen?: boolean;
@@ -37,7 +39,11 @@ export function useDoc<T>(path: string, options?: UseDocOptions) {
     const handleError = (err: FirestoreError) => {
       setError(err);
       setLoading(false);
-      console.error(err);
+      const permissionError = new FirestorePermissionError({
+        path: path,
+        operation: 'get',
+      });
+      errorEmitter.emit('permission-error', permissionError);
     };
 
     if (options?.listen === false) {

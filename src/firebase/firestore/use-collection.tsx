@@ -10,6 +10,8 @@ import {
   DocumentData,
 } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface UseCollectionOptions {
   constraints?: QueryConstraint[];
@@ -51,7 +53,11 @@ export function useCollection<T>(path: string, options?: UseCollectionOptions) {
     const handleError = (err: FirestoreError) => {
       setError(err);
       setLoading(false);
-      console.error(`Error fetching collection '${path}':`, err);
+      const permissionError = new FirestorePermissionError({
+        path: path,
+        operation: options?.listen === false ? 'get' : 'list',
+      });
+      errorEmitter.emit('permission-error', permissionError);
     };
 
     let unsubscribe: () => void = () => {};
