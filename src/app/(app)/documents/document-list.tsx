@@ -11,6 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const categories = ['All', 'Curriculum', 'Manual', 'Form', 'Guide'];
 
@@ -189,36 +191,123 @@ export default function DocumentList() {
   );
 
   const renderList = (docs: DocumentType[]) => (
-    <div className="space-y-4">
-      {docs.map((doc) => (
-        <Card key={doc.id} className="transition-all hover:shadow-lg">
-           <CardContent className="p-4 flex items-center justify-between gap-4">
-             <div className="flex items-center gap-4 flex-1 min-w-0">
-               <div className="bg-primary/10 p-2 rounded-md hidden sm:block">
-                 <FileText className="h-6 w-6 flex-shrink-0 text-primary" />
-               </div>
-               <div className="flex-1 min-w-0">
-                 <p className="font-headline font-semibold line-clamp-1">{doc.filename}</p>
-                 <p className="text-sm text-muted-foreground">{doc.category}</p>
-               </div>
-             </div>
-             <div className="flex items-center gap-2 flex-shrink-0">
-                <Button variant="outline" size="sm" onClick={() => handleView(doc as DocumentType)} disabled={isBlocked}>
-                    <Eye className="mr-2 h-4 w-4" />
-                    View
-                </Button>
-                <Button size="sm" onClick={() => handleDownload(doc as DocumentType)} disabled={downloading === doc.id || isBlocked}>
-                  {downloading === doc.id ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="mr-2 h-4 w-4" />
-                  )}
-                  {downloading === doc.id ? 'Downloading' : 'Download'}
-                </Button>
-             </div>
-           </CardContent>
-        </Card>
-      ))}
+    <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+      {/* Header for desktop */}
+      <div className="hidden md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] gap-4 items-center px-6 py-3 border-b">
+        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">TITLE</span>
+        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">VISIBILITY</span>
+        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">UPLOADED DATE</span>
+        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider text-right">ACTIONS</span>
+      </div>
+
+      {/* Rows */}
+      <div className="divide-y divide-border">
+        {docs.map((doc) => (
+          <div key={doc.id} className="p-4 hover:bg-muted/50 transition-colors">
+            {/* Desktop View */}
+            <div className="hidden md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] gap-4 items-center">
+              <div className="flex items-center gap-4">
+                <div className="bg-orange-100 text-orange-600 p-2 rounded-lg">
+                  <FileText className="h-6 w-6"/>
+                </div>
+                <div>
+                  <p className="font-bold text-foreground line-clamp-1">{doc.filename}</p>
+                  <p className="text-sm text-muted-foreground">PDF Document</p>
+                </div>
+              </div>
+              <div>
+                <Badge className={`font-semibold border-transparent ${doc.visibility === 'ALL_CICS' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}`}>
+                  {doc.visibility === 'ALL_CICS' ? 'PUBLIC' : 'STUDENT'}
+                </Badge>
+              </div>
+              <p className="text-muted-foreground text-sm">
+                {doc.uploadedAt ? format(doc.uploadedAt.toDate(), 'MMM d, yyyy') : 'N/A'}
+              </p>
+              <div className="flex justify-end">
+                <TooltipProvider>
+                  <div className="flex items-center justify-end gap-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={() => handleView(doc)} disabled={isBlocked}>
+                          <Eye className="h-4 w-4" />
+                          <span className="sr-only">View</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent><p>View</p></TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={() => handleDownload(doc)} disabled={downloading === doc.id || isBlocked}>
+                          {downloading === doc.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Download className="h-4 w-4" />
+                          )}
+                          <span className="sr-only">Download</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent><p>Download</p></TooltipContent>
+                    </Tooltip>
+                  </div>
+                </TooltipProvider>
+              </div>
+            </div>
+
+            {/* Mobile View */}
+            <div className="md:hidden flex flex-col gap-4">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="bg-orange-100 text-orange-600 p-2 rounded-lg">
+                    <FileText className="h-6 w-6"/>
+                  </div>
+                  <div>
+                    <p className="font-bold text-foreground line-clamp-2">{doc.filename}</p>
+                    <p className="text-sm text-muted-foreground">PDF Document</p>
+                  </div>
+                </div>
+                <TooltipProvider>
+                  <div className="flex items-center gap-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={() => handleView(doc)} disabled={isBlocked}>
+                          <Eye className="h-4 w-4" />
+                          <span className="sr-only">View</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent><p>View</p></TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={() => handleDownload(doc)} disabled={downloading === doc.id || isBlocked}>
+                          {downloading === doc.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Download className="h-4 w-4" />
+                          )}
+                          <span className="sr-only">Download</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent><p>Download</p></TooltipContent>
+                    </Tooltip>
+                  </div>
+                </TooltipProvider>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-card-foreground">Visibility:</span>
+                  <Badge className={`font-semibold border-transparent ${doc.visibility === 'ALL_CICS' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}`}>
+                    {doc.visibility === 'ALL_CICS' ? 'PUBLIC' : 'STUDENT'}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-card-foreground">Uploaded:</span>
+                  <span>{doc.uploadedAt ? format(doc.uploadedAt.toDate(), 'MMM d, yyyy') : 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 
