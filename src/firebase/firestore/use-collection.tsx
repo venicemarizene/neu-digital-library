@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import {
   onSnapshot,
   getDocs,
@@ -23,7 +23,9 @@ export function useCollection<T>(path: string, options?: UseCollectionOptions) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<FirestoreError | null>(null);
 
-  const memoizedConstraints = useMemo(() => options?.constraints ?? [], [options?.constraints]);
+  // It's critical that the caller memoizes this constraints array.
+  // All current usages in the app are doing this correctly.
+  const constraints = options?.constraints;
 
   useEffect(() => {
     if (options?.skip || !db) {
@@ -35,18 +37,21 @@ export function useCollection<T>(path: string, options?: UseCollectionOptions) {
     setLoading(true);
 
     const collectionRef = collection(db, path);
-    const q = query(collectionRef, ...memoizedConstraints);
+    // The query is created with the constraints.
+    // The spread syntax is safe, as `constraints` will be undefined or an array.
+    const q = query(collectionRef, ...(constraints ?? []));
 
     const handleSnapshot = (snapshot: DocumentData) => {
       const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T));
       setData(docs);
+      setError(null); // Clear previous errors on new data
       setLoading(false);
     };
 
     const handleError = (err: FirestoreError) => {
       setError(err);
       setLoading(false);
-      console.error(err);
+      console.error(`Error fetching collection '${path}':`, err);
     };
 
     let unsubscribe: () => void = () => {};
@@ -57,11 +62,15 @@ export function useCollection<T>(path: string, options?: UseCollectionOptions) {
         .then(handleSnapshot)
         .catch(handleError);
     } else {
+      // Real-time listener
       unsubscribe = onSnapshot(q, handleSnapshot, handleError);
     }
 
+    // Cleanup subscription on unmount
     return () => unsubscribe();
-  }, [db, path, memoizedConstraints, options?.listen, options?.skip]);
+    // The dependency array includes the constraints array itself.
+    // If the reference to this array changes, the effect will re-run.
+  }, [db, path, constraints, options?.listen, options?.skip]);
 
   return { data, loading, error };
 }
