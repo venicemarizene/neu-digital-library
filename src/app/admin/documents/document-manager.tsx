@@ -149,7 +149,10 @@ export default function DocumentManager() {
 
     const { error: uploadError } = await supabase.storage
       .from('documents')
-      .upload(filePath, file);
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
       
     if (uploadError) {
       if (uploadError.message.includes('violates row-level security policy')) {
