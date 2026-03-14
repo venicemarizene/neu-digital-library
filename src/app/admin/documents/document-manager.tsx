@@ -394,7 +394,7 @@ export default function DocumentManager() {
                   <Loader2 className="h-8 w-8 animate-spin" />
               </div>
             ) : filteredDocuments.length > 0 ? (
-                <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {filteredDocuments.map((doc) => (
                         <Card key={doc.id} className="flex flex-col transition-all hover:shadow-lg">
                             <CardHeader>
@@ -453,7 +453,7 @@ export default function DocumentManager() {
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
                                                     <AlertDialogTrigger asChild>
-                                                        <Button size="icon" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground" disabled={doc.id.startsWith('mock-')} >
+                                                        <Button size="icon" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors" disabled={doc.id.startsWith('mock-')} >
                                                             <Trash2 className="h-4 w-4" />
                                                             <span className="sr-only">Delete</span>
                                                         </Button>
