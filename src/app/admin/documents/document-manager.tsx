@@ -152,7 +152,16 @@ export default function DocumentManager() {
       .upload(filePath, file);
       
     if (uploadError) {
-      toast({ variant: 'destructive', title: 'Upload Failed', description: uploadError.message });
+      if (uploadError.message.includes('violates row-level security policy')) {
+        toast({
+            variant: 'destructive',
+            title: 'Supabase Permission Error',
+            description: "Upload failed due to Supabase Row Level Security. Please create a policy in your Supabase dashboard to allow uploads.",
+            duration: 10000,
+        });
+      } else {
+        toast({ variant: 'destructive', title: 'Upload Failed', description: uploadError.message });
+      }
       setIsSubmitting(false);
       return;
     }
@@ -245,12 +254,21 @@ export default function DocumentManager() {
               .remove([docToDelete.storagePath]);
           
           if (deleteError) {
-              console.error("Error deleting file from Supabase Storage:", deleteError);
-              toast({
-                  variant: 'destructive',
-                  title: 'Storage Delete Failed',
-                  description: 'Could not delete the file from storage. It may have already been removed.',
-              });
+              if (deleteError.message.includes('violates row-level security policy')) {
+                  toast({
+                      variant: 'destructive',
+                      title: 'Supabase Permission Error',
+                      description: "Delete failed due to Supabase Row Level Security. Please create a policy to allow deletes.",
+                      duration: 10000,
+                  });
+              } else {
+                  console.error("Error deleting file from Supabase Storage:", deleteError);
+                  toast({
+                      variant: 'destructive',
+                      title: 'Storage Delete Failed',
+                      description: 'Could not delete the file from storage. It may have already been removed.',
+                  });
+              }
           }
         }
     } else {
