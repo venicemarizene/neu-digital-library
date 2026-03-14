@@ -64,6 +64,21 @@ export default function DocumentManager() {
   const [downloading, setDownloading] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const form = useForm<z.infer<typeof documentSchema>>({
+    resolver: zodResolver(documentSchema),
+    defaultValues: {
+      category: '',
+      description: '',
+      file: undefined,
+      visibility: 'ALL_CICS',
+    },
+  });
+
+  const visibility = useWatch({
+    control: form.control,
+    name: 'visibility'
+  });
+
   const programFilterOptions = useMemo(() => [
     { label: "All Programs", value: "ALL" },
     { label: "All CICS (General)", value: "ALL_CICS" },
@@ -105,21 +120,6 @@ export default function DocumentManager() {
     return docs;
   }, [firestoreDocs, activeCategory, programFilter, searchTerm]);
 
-  const form = useForm<z.infer<typeof documentSchema>>({
-    resolver: zodResolver(documentSchema),
-    defaultValues: {
-      category: '',
-      description: '',
-      file: undefined,
-      visibility: 'ALL_CICS',
-    },
-  });
-
-  const visibility = useWatch({
-    control: form.control,
-    name: 'visibility'
-  });
-
   async function onSubmit(values: z.infer<typeof documentSchema>) {
     const file = values.file?.[0];
     if (!file) {
@@ -138,7 +138,6 @@ export default function DocumentManager() {
         title: 'Supabase Not Configured',
         description: 'Please provide Supabase credentials in your .env.local file to upload documents.',
       });
-      setIsSubmitting(false);
       return;
     }
   
@@ -146,76 +145,80 @@ export default function DocumentManager() {
   
     const filePath = `${Date.now()}_${file.name}`;
 
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('documents')
-      .upload(filePath, file, {
-        cacheControl: '3600',
-      });
-      
-    if (uploadError || !uploadData) {
-      if (uploadError?.message.includes('violates row-level security policy')) {
+    try {
+        const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('documents')
+            .upload(filePath, file, {
+                cacheControl: '3600',
+                upsert: false,
+            });
+            
+        if (uploadError) {
+            if (uploadError.message.includes('violates row-level security policy')) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Supabase Permission Error',
+                    description: "Upload failed due to Supabase Row Level Security. Please create a policy in your Supabase dashboard to allow uploads.",
+                    duration: 10000,
+                });
+            } else {
+                toast({ variant: 'destructive', title: 'Upload Failed', description: uploadError.message });
+            }
+            return;
+        }
+
+        const { data: urlData } = supabase.storage
+            .from('documents')
+            .getPublicUrl(uploadData.path);
+
+        if (!urlData.publicUrl) {
+            toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not get public URL for the file.' });
+            await supabase.storage.from('documents').remove([uploadData.path]);
+            return;
+        }
+        
+        const docData = {
+            filename: file.name,
+            category: values.category,
+            description: values.description,
+            downloadURL: urlData.publicUrl,
+            storagePath: uploadData.path,
+            uploadedAt: serverTimestamp(),
+            uploaderId: user.uid,
+            visibility: values.visibility,
+            targetProgram: values.visibility === 'PROGRAM_SPECIFIC' ? values.targetProgram : null,
+        };
+
+        const documentsCollection = collection(db, 'Documents');
+        await addDoc(documentsCollection, docData);
+
         toast({
-            variant: 'destructive',
-            title: 'Supabase Permission Error',
-            description: "Upload failed due to Supabase Row Level Security. Please create a policy in your Supabase dashboard to allow uploads.",
-            duration: 10000,
+            title: 'Success!',
+            description: `"${file.name}" has been uploaded.`,
         });
-      } else {
-        toast({ variant: 'destructive', title: 'Upload Failed', description: uploadError?.message || 'An unknown error occurred.' });
-      }
-      setIsSubmitting(false);
-      return;
+        form.reset();
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    } catch (error: any) {
+        console.error("An unexpected error occurred during upload:", error);
+        if (error.name === 'FirebaseError' && error.code === 'permission-denied') {
+             const permissionError = new FirestorePermissionError({
+                path: collection(db, 'Documents').path,
+                operation: 'create',
+                requestResourceData: { /* Data redacted for brevity */ }
+             });
+             errorEmitter.emit('permission-error', permissionError);
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'An Unexpected Error Occurred',
+                description: 'Could not save the document record. Please check the console.',
+            });
+        }
+    } finally {
+        setIsSubmitting(false);
     }
-
-    const { data: urlData } = supabase.storage
-      .from('documents')
-      .getPublicUrl(uploadData.path);
-
-    if (!urlData.publicUrl) {
-      toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not get public URL for the file.' });
-      setIsSubmitting(false);
-      // Attempt to clean up the uploaded file if URL retrieval fails
-      await supabase.storage.from('documents').remove([uploadData.path]);
-      return;
-    }
-    
-    const downloadURL = urlData.publicUrl;
-
-    const docData = {
-      filename: file.name,
-      category: values.category,
-      description: values.description,
-      downloadURL: downloadURL,
-      storagePath: uploadData.path,
-      uploadedAt: serverTimestamp(),
-      uploaderId: user.uid,
-      visibility: values.visibility,
-      targetProgram: values.visibility === 'PROGRAM_SPECIFIC' ? values.targetProgram : null,
-    };
-
-    const documentsCollection = collection(db, 'Documents');
-    addDoc(documentsCollection, docData)
-      .then(() => {
-          toast({
-              title: 'Success!',
-              description: `"${file.name}" has been uploaded.`,
-          });
-          form.reset();
-          if (fileInputRef.current) {
-              fileInputRef.current.value = '';
-          }
-      })
-      .catch(async (error) => {
-          const permissionError = new FirestorePermissionError({
-            path: documentsCollection.path,
-            operation: 'create',
-            requestResourceData: docData,
-          });
-          errorEmitter.emit('permission-error', permissionError);
-      })
-      .finally(() => {
-          setIsSubmitting(false);
-      });
   }
 
 
@@ -244,7 +247,10 @@ export default function DocumentManager() {
 
 
   const handleDelete = async (docToDelete: DocumentType) => {
-    if (!db) return;
+    if (!db) {
+        toast({ variant: 'destructive', title: 'Database not available.' });
+        return;
+    }
 
     if (docToDelete.storagePath) {
         if (!supabase) {
@@ -267,7 +273,7 @@ export default function DocumentManager() {
                   toast({
                       variant: 'destructive',
                       title: 'Storage Delete Failed',
-                      description: 'Could not delete the file from storage. It may have already been removed.',
+                      description: 'Could not delete the file from storage, but will still attempt to delete the record.',
                   });
               }
           }
