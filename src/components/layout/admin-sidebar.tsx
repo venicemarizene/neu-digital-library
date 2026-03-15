@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -39,14 +40,14 @@ export function AdminSidebar() {
           <LibraryBig className="h-11 w-11 flex-shrink-0 text-accent" />
           <div className="flex flex-col">
             <div className="flex flex-row items-end gap-1.5">
-              <span className="font-headline text-2xl font-bold leading-none tracking-tighter text-white">
+              <span className="font-headline text-2xl font-bold leading-none tracking-tighter text-accent">
                 CICS
               </span>
-              <span className="font-headline text-xl font-semibold leading-none text-white">
+              <span className="font-headline text-xl font-semibold leading-none text-accent">
                 DocHub
               </span>
             </div>
-            <span className="text-lg font-medium text-accent">Admin</span>
+            <span className="text-lg font-medium text-white">Admin</span>
           </div>
         </div>
       </SidebarHeader>
