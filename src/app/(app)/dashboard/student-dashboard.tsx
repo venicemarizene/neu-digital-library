@@ -20,32 +20,40 @@ export default function StudentDashboard() {
 
     useEffect(() => {
         const getRecommendations = async () => {
-            if (!appUser?.program) {
+            if (!appUser?.program || !user || !db) {
                 setLoading(false);
                 return;
             }
 
             try {
+                // 1. Get AI recommendations
                 const result = await personalizedDocumentRecommendations({ undergraduateProgram: appUser.program });
                 
-                const recsWithDocs: any[] = [];
-                if (result.recommendations && result.recommendations.length > 0 && db) {
-                    const titles = result.recommendations.map(r => r.title);
-                    if (titles.length > 0) {
-                        const docsQuery = query(collection(db, "Documents"), where('filename', 'in', titles));
-                        const docsSnapshot = await getDocs(docsQuery);
-                        const docsData = docsSnapshot.docs.map(d => ({id: d.id, ...d.data()}) as DocumentType);
-                        
-                        for(const rec of result.recommendations) {
-                            const matchingDoc = docsData.find(d => d.filename === rec.title);
+                let recsWithDocs: any[] = [];
+                if (result.recommendations && result.recommendations.length > 0) {
+                    const recommendedTitles = result.recommendations.map(r => r.title);
+                    
+                    // 2. Fetch all documents the student is allowed to see
+                    const studentDocsQuery = query(collection(db, "Documents"), where('allowedStudentIds', 'array-contains', user.uid));
+                    const docsSnapshot = await getDocs(studentDocsQuery);
+                    const allowedDocs = docsSnapshot.docs.map(d => ({id: d.id, ...d.data()}) as DocumentType);
+                    
+                    // 3. Find the recommended docs within the allowed docs on the client
+                    const matchingDocs = allowedDocs.filter(d => recommendedTitles.includes(d.filename));
+                    
+                    // 4. Map the AI description to the found Firestore documents
+                    recsWithDocs = result.recommendations
+                        .map(rec => {
+                            const matchingDoc = matchingDocs.find(d => d.filename === rec.title);
                             if (matchingDoc) {
-                                recsWithDocs.push({
-                                    ...rec,
-                                    doc: matchingDoc
-                                });
+                                return {
+                                    ...rec, // contains title and description from AI
+                                    doc: matchingDoc // contains the full firestore document
+                                };
                             }
-                        }
-                    }
+                            return null;
+                        })
+                        .filter(Boolean) as any[];
                 }
                 setRecommendations(recsWithDocs);
 
