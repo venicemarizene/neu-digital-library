@@ -46,7 +46,7 @@ export function AdminSidebar() {
                 DocHub
               </span>
             </div>
-            <span className="text-lg font-medium text-sidebar-foreground/60">Admin</span>
+            <span className="text-lg font-medium text-accent">Admin</span>
           </div>
         </div>
       </SidebarHeader>

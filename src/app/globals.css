@@ -10,19 +10,19 @@
     --card-foreground: 224 71.4% 4.1%;
     --popover: 0 0% 100%; /* white */
     --popover-foreground: 224 71.4% 4.1%;
-    --primary: 145 63% 41%; /* #26A85A - vibrant green */
+    --primary: 211 58% 23%; /* #1A365D - Navy Blue */
     --primary-foreground: 355 100% 97%;
     --secondary: 40 25% 92%;
     --secondary-foreground: 224 71.4% 4.1%;
     --muted: 40 25% 92%;
     --muted-foreground: 224 71.4% 4.1%;
-    --accent: 93 83% 64%; /* #9EED5B - yellow-green */
+    --accent: 45 65% 52%; /* #D4AF37 - Gold */
     --accent-foreground: 224 71.4% 4.1%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 40 20% 88%;
-    --input: 40 20% 88%;
-    --ring: 145 63% 41%;
+    --border: 36 9% 82%; /* #D1CDC2 - soft grey-tan */
+    --input: 36 9% 82%; /* #D1CDC2 - soft grey-tan */
+    --ring: 45 65% 52%; /* #D4AF37 - Gold */
     --radius: 0.8rem; /* Slightly more rounded corners */
 
     --chart-1: 145 76% 61%;
@@ -50,19 +50,19 @@
     --card-foreground: 135 23% 94%;
     --popover: 224 71.4% 4.1%;
     --popover-foreground: 135 23% 94%;
-    --primary: 145 63% 41%;
-    --primary-foreground: 145 63% 98%;
+    --primary: 211 58% 23%;
+    --primary-foreground: 355 100% 97%;
     --secondary: 224 71.4% 10%;
     --secondary-foreground: 135 23% 94%;
     --muted: 224 71.4% 10%;
     --muted-foreground: 135 23% 80%;
-    --accent: 93 83% 64%;
+    --accent: 45 65% 52%;
     --accent-foreground: 224 71.4% 4.1%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 224 71.4% 10%;
-    --input: 224 71.4% 10%;
-    --ring: 145 63% 41%;
+    --border: 36 9% 82%;
+    --input: 36 9% 82%;
+    --ring: 45 65% 52%;
 
     --chart-1: 145 76% 61%;
     --chart-2: 93 58% 39%;
