@@ -23,6 +23,7 @@ export interface Document {
   targetProgram?: string;
   description?: string;
   storagePath?: string;
+  downloads: number;
 }
 
 export interface DownloadLog {

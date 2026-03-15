@@ -1,6 +1,6 @@
 'use client';
-import { useState, useMemo, useEffect } from 'react';
-import { collection, addDoc, serverTimestamp, orderBy, Timestamp, where } from 'firebase/firestore';
+import { useState, useMemo } from 'react';
+import { collection, addDoc, serverTimestamp, orderBy, Timestamp, where, doc, updateDoc, increment } from 'firebase/firestore';
 import { useUser, useFirestore, useCollection } from '@/firebase';
 import type { Document as DocumentType } from '@/lib/types';
 import { Input } from '@/components/ui/input';
@@ -13,8 +13,10 @@ import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const categories = ['All', 'Curriculum', 'Manual', 'Form', 'Guide'];
+type SortOption = 'uploadedAt' | 'filename';
 
 export default function DocumentList() {
   const { user, appUser, isBlocked, loading: userLoading } = useUser();
@@ -24,27 +26,29 @@ export default function DocumentList() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [downloading, setDownloading] = useState<string | null>(null);
   const [view, setView] = useState<'grid' | 'list'>('grid');
+  const [sortOption, setSortOption] = useState<SortOption>('uploadedAt');
+
 
   const allCicsConstraints = useMemo(() => [
     where('visibility', '==', 'ALL_CICS'),
-    orderBy('uploadedAt', 'desc')
-  ], []);
+    orderBy(sortOption, sortOption === 'uploadedAt' ? 'desc' : 'asc')
+  ], [sortOption]);
 
   const programSpecificConstraints = useMemo(() => {
       if (!appUser?.program) return [];
       return [
           where('visibility', '==', 'PROGRAM_SPECIFIC'),
           where('targetProgram', '==', appUser.program),
-          orderBy('uploadedAt', 'desc')
+          orderBy(sortOption, sortOption === 'uploadedAt' ? 'desc' : 'asc')
       ];
-  }, [appUser?.program]);
+  }, [appUser?.program, sortOption]);
 
-  const { data: allCicsDocs, loading: loadingAll, error: errorAll } = useCollection<DocumentType>('Documents', { 
+  const { data: allCicsDocs, loading: loadingAll } = useCollection<DocumentType>('Documents', { 
     constraints: allCicsConstraints, 
     listen: true, 
     skip: userLoading || !user
   });
-  const { data: programDocs, loading: loadingProgram, error: errorProgram } = useCollection<DocumentType>('Documents', { 
+  const { data: programDocs, loading: loadingProgram } = useCollection<DocumentType>('Documents', { 
     constraints: programSpecificConstraints, 
     listen: true, 
     skip: userLoading || !appUser?.program 
@@ -56,8 +60,15 @@ export default function DocumentList() {
     const firestoreDocs = [...(allCicsDocs || []), ...(programDocs || [])];
     const uniqueFirestoreDocs = Array.from(new Map(firestoreDocs.map(doc => [doc.id, doc])).values());
     
-    return uniqueFirestoreDocs.sort((a, b) => (b.uploadedAt as any) - (a.uploadedAt as any));
-  }, [allCicsDocs, programDocs]);
+    // The sorting is now done by Firestore, but we still need to merge and ensure uniqueness.
+    // A secondary client-side sort after merging ensures consistent order if timestamps are identical.
+    return uniqueFirestoreDocs.sort((a, b) => {
+        if (sortOption === 'uploadedAt') {
+            return (b.uploadedAt as any) - (a.uploadedAt as any);
+        }
+        return a.filename.localeCompare(b.filename);
+    });
+  }, [allCicsDocs, programDocs, sortOption]);
   
   const filteredDocuments = useMemo(() => {
     let docs = allDocuments;
@@ -95,8 +106,8 @@ export default function DocumentList() {
     window.open(doc.downloadURL, '_blank');
   };
 
-  const handleDownload = async (doc: DocumentType) => {
-    if (!user) {
+  const handleDownload = async (docToDownload: DocumentType) => {
+    if (!user || !db) {
       toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to download files.' });
       return;
     }
@@ -104,22 +115,28 @@ export default function DocumentList() {
       toast({ variant: 'destructive', title: 'Account Restricted', description: 'Your account is restricted from downloading files.' });
       return;
     }
-    setDownloading(doc.id);
+    setDownloading(docToDownload.id);
     try {
+      // Increment download count
+      const docRef = doc(db, 'Documents', docToDownload.id);
+      updateDoc(docRef, { downloads: increment(1) });
+      
+      // Log the download action
       await addDoc(collection(db, 'Logs'), {
         userId: user.uid,
-        documentId: doc.id,
+        documentId: docToDownload.id,
         action: 'download',
         downloadedAt: serverTimestamp(),
       });
 
-      const response = await fetch(doc.downloadURL);
+      // Perform the download
+      const response = await fetch(docToDownload.downloadURL);
       if (!response.ok) throw new Error('Network response was not ok.');
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', doc.filename);
+      link.setAttribute('download', docToDownload.filename);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -136,7 +153,7 @@ export default function DocumentList() {
   const renderGrid = (docs: DocumentType[]) => (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
       {docs.map((doc) => (
-        <Card key={doc.id} className="flex flex-col transition-all hover:shadow-lg">
+        <Card key={doc.id} className="flex flex-col transition-all hover:shadow-lg rounded-lg">
           <CardHeader>
             <div className="flex items-start gap-4">
               <div className="bg-primary/10 p-2 rounded-md">
@@ -150,7 +167,7 @@ export default function DocumentList() {
           </CardHeader>
           <CardFooter className="flex items-center gap-2 mt-auto">
                 <Button variant="outline" size="sm" onClick={() => handleView(doc as DocumentType)} disabled={isBlocked}>
-                    <Eye className="mr-2 h-4 w-4 text-primary" />
+                    <Eye className="mr-2 h-4 w-4" />
                     View
                 </Button>
                 <Button size="sm" onClick={() => handleDownload(doc as DocumentType)} disabled={downloading === doc.id || isBlocked}>
@@ -184,7 +201,7 @@ export default function DocumentList() {
             {/* Desktop View */}
             <div className="hidden md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] gap-4 items-center">
               <div className="flex items-center gap-4">
-                <div className="bg-orange-100 text-orange-600 p-2 rounded-lg">
+                <div className="bg-primary/10 text-primary p-2 rounded-lg">
                   <FileText className="h-6 w-6"/>
                 </div>
                 <div>
@@ -206,7 +223,7 @@ export default function DocumentList() {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button variant="ghost" size="icon" onClick={() => handleView(doc)} disabled={isBlocked}>
-                          <Eye className="h-4 w-4 text-primary" />
+                          <Eye className="h-4 w-4" />
                           <span className="sr-only">View</span>
                         </Button>
                       </TooltipTrigger>
@@ -234,7 +251,7 @@ export default function DocumentList() {
             <div className="md:hidden flex flex-col gap-4">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="bg-orange-100 text-orange-600 p-2 rounded-lg">
+                  <div className="bg-primary/10 text-primary p-2 rounded-lg">
                     <FileText className="h-6 w-6"/>
                   </div>
                   <div>
@@ -247,7 +264,7 @@ export default function DocumentList() {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button variant="ghost" size="icon" onClick={() => handleView(doc)} disabled={isBlocked}>
-                          <Eye className="h-4 w-4 text-primary" />
+                          <Eye className="h-4 w-4" />
                           <span className="sr-only">View</span>
                         </Button>
                       </TooltipTrigger>
@@ -341,16 +358,29 @@ export default function DocumentList() {
         </Alert>
       )}
       <div className="flex flex-col gap-4">
-        <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-                type="search"
-                placeholder="Search by file, description..."
-                className="w-full pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                disabled={isBlocked}
-            />
+        <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-grow">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                    type="search"
+                    placeholder="Search by file, description..."
+                    className="w-full pl-10"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    disabled={isBlocked}
+                />
+            </div>
+            <div className="w-full sm:w-[200px]">
+                <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="uploadedAt">Sort by: Newest</SelectItem>
+                        <SelectItem value="filename">Sort by: Alphabetical</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
         </div>
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
             <div className="flex gap-2 flex-wrap">

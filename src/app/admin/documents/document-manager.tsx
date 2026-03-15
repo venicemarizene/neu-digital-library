@@ -3,7 +3,7 @@ import { useState, useMemo, useRef } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { collection, addDoc, serverTimestamp, deleteDoc, doc as firestoreDoc, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, deleteDoc, doc as firestoreDoc, Timestamp, updateDoc, increment } from 'firebase/firestore';
 import { useUser, useFirestore, useCollection } from '@/firebase';
 import { supabase } from '@/lib/supabaseClient';
 import type { Document as DocumentType } from '@/lib/types';
@@ -36,6 +36,8 @@ const programs = [
 const docCategories = ['Curriculum', 'Form', 'Manual', 'Guide'];
 const allDocCategories = ['All', ...docCategories];
 
+type SortOption = 'downloads' | 'uploadedAt' | 'filename';
+
 
 const documentSchema = z.object({
   file: z.instanceof(FileList).refine(files => files?.length === 1, 'File is required.'),
@@ -63,6 +65,7 @@ export default function DocumentManager() {
   const [programFilter, setProgramFilter] = useState('ALL');
   const [downloading, setDownloading] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [sortOption, setSortOption] = useState<SortOption>('uploadedAt');
 
   const form = useForm<z.infer<typeof documentSchema>>({
     resolver: zodResolver(documentSchema),
@@ -88,7 +91,10 @@ export default function DocumentManager() {
     }))
   ], []);
 
-  const documentConstraints = useMemo(() => [orderBy('uploadedAt', 'desc')], []);
+  const documentConstraints = useMemo(() => [
+      orderBy(sortOption, sortOption === 'filename' ? 'asc' : 'desc')
+  ], [sortOption]);
+  
   const { data: firestoreDocs, loading: docsLoading } = useCollection<DocumentType>('Documents', {
     constraints: documentConstraints,
     listen: true,
@@ -187,6 +193,7 @@ export default function DocumentManager() {
             uploaderId: user.uid,
             visibility: values.visibility,
             targetProgram: values.visibility === 'PROGRAM_SPECIFIC' ? values.targetProgram : null,
+            downloads: 0,
         };
 
         const documentsCollection = collection(db, 'Documents');
@@ -230,25 +237,30 @@ export default function DocumentManager() {
     window.open(doc.downloadURL, '_blank');
   };
   
-  const handleDownload = async (doc: DocumentType) => {
-    setDownloading(doc.id);
+  const handleDownload = async (docToDownload: DocumentType) => {
+    if(!db) return;
+    setDownloading(docToDownload.id);
     try {
-      if (user && db) {
+      // Increment download count
+      const docRef = firestoreDoc(db, 'Documents', docToDownload.id);
+      updateDoc(docRef, { downloads: increment(1) });
+        
+      if (user) {
         await addDoc(collection(db, 'Logs'), {
             userId: user.uid,
-            documentId: doc.id,
+            documentId: docToDownload.id,
             action: 'download',
             downloadedAt: serverTimestamp(),
         });
       }
 
-      const response = await fetch(doc.downloadURL);
+      const response = await fetch(docToDownload.downloadURL);
       if (!response.ok) throw new Error('Network response was not ok.');
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', doc.filename);
+      link.setAttribute('download', docToDownload.filename);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -324,7 +336,7 @@ export default function DocumentManager() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <Card>
+        <Card className='rounded-lg'>
           <CardHeader>
             <CardTitle>Upload New Document</CardTitle>
             <CardDescription>Select a PDF and provide its details to upload to Supabase.</CardDescription>
@@ -399,7 +411,7 @@ export default function DocumentManager() {
                     <FormItem>
                       <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="A brief summary of the document." {...field} disabled={isSubmitting} className="bg-[#F9F8F6]" />
+                        <Textarea placeholder="A brief summary of the document." {...field} disabled={isSubmitting} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -477,7 +489,7 @@ export default function DocumentManager() {
       </div>
 
       <div>
-        <Card>
+        <Card className='rounded-lg'>
           <CardHeader>
             <CardTitle>Existing Documents</CardTitle>
           </CardHeader>
@@ -506,6 +518,16 @@ export default function DocumentManager() {
                             ))}
                         </SelectContent>
                     </Select>
+                     <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
+                        <SelectTrigger className="w-full md:w-[240px]">
+                            <SelectValue placeholder="Sort by" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="downloads">Sort by: Most Downloaded</SelectItem>
+                            <SelectItem value="uploadedAt">Sort by: Newest</SelectItem>
+                            <SelectItem value="filename">Sort by: Alphabetical</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
                 <div className="flex gap-2 flex-wrap">
                     {allDocCategories.map(cat => (
@@ -523,7 +545,7 @@ export default function DocumentManager() {
             ) : filteredDocuments.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredDocuments.map((doc) => (
-                        <Card key={doc.id} className="flex flex-col transition-all hover:shadow-lg">
+                        <Card key={doc.id} className="flex flex-col transition-all hover:shadow-lg rounded-lg">
                             <CardHeader>
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="flex flex-1 items-start gap-4">
@@ -543,9 +565,12 @@ export default function DocumentManager() {
                                     </div>
                                 </div>
                             </CardHeader>
-                            <CardContent className="flex-1">
+                            <CardContent className="flex-1 space-y-1">
                                 <p className="text-xs text-muted-foreground">
                                     Uploaded: {doc.uploadedAt ? format(doc.uploadedAt.toDate(), 'yyyy-MM-dd') : 'N/A'}
+                                </p>
+                                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <Download className="h-3 w-3" /> {doc.downloads ?? 0} downloads
                                 </p>
                             </CardContent>
                             <CardFooter className="mt-auto">
@@ -555,7 +580,7 @@ export default function DocumentManager() {
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
                                                     <Button size="icon" variant="outline" onClick={() => handleView(doc as DocumentType)}>
-                                                        <Eye className="h-4 w-4 text-primary" />
+                                                        <Eye className="h-4 w-4" />
                                                         <span className="sr-only">View</span>
                                                     </Button>
                                                 </TooltipTrigger>

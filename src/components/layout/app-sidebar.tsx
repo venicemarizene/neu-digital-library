@@ -15,6 +15,7 @@ import { signOut } from 'firebase/auth';
 import { useAuth, useUser } from '@/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Logo } from '../icons/logo';
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -35,20 +36,8 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
-          <LibraryBig className="h-10 w-10 flex-shrink-0 text-primary" />
-          <div className="flex flex-col">
-            <div className="flex flex-row items-end gap-1.5">
-              <span className="font-headline text-xl font-bold leading-none tracking-tighter text-accent">
-                CICS
-              </span>
-              <span className="font-headline text-lg font-semibold leading-none text-sidebar-foreground/80">
-                DocHub
-              </span>
-            </div>
-            <span className="text-base font-medium text-sidebar-foreground/60">Student</span>
-          </div>
-        </div>
+        <Logo isDark={true}/>
+        <span className="text-lg font-medium text-sidebar-foreground/80 -mt-1 ml-11">Student</span>
       </SidebarHeader>
       <SidebarContent className="px-2">
         <SidebarMenu>

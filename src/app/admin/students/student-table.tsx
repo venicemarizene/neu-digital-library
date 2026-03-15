@@ -9,8 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Users } from 'lucide-react';
+import { Loader2, Users, Search } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { where } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -37,7 +38,8 @@ export default function StudentTable() {
   const { data: users, loading } = useCollection<AppUser>('Users', {
       constraints: userConstraints
   });
-  const [filter, setFilter] = useState('All Programs');
+  const [programFilter, setProgramFilter] = useState('All Programs');
+  const [searchTerm, setSearchTerm] = useState('');
   
   const handleBlockToggle = (uid: string, isBlocked: boolean) => {
     if (!db) {
@@ -67,15 +69,39 @@ export default function StudentTable() {
 
   const filteredUsers = useMemo(() => {
     if (!users) return [];
-    if (filter === 'All Programs') return users;
-    return users.filter(user => user.program === filter);
-  }, [users, filter]);
+    
+    let filtered = users;
+
+    if (programFilter !== 'All Programs') {
+        filtered = filtered.filter(user => user.program === programFilter);
+    }
+    
+    if (searchTerm) {
+        const lowercasedTerm = searchTerm.toLowerCase();
+        filtered = filtered.filter(user => 
+            user.displayName?.toLowerCase().includes(lowercasedTerm) ||
+            user.email?.toLowerCase().includes(lowercasedTerm)
+        );
+    }
+
+    return filtered;
+  }, [users, programFilter, searchTerm]);
 
   return (
-    <Card>
+    <Card className="rounded-lg">
       <CardContent className="pt-6">
-        <div className="mb-4">
-          <Select value={filter} onValueChange={setFilter}>
+        <div className="mb-4 flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-grow">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search by name or email..."
+              className="w-full pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <Select value={programFilter} onValueChange={setProgramFilter}>
             <SelectTrigger className="w-full sm:w-[300px]">
               <SelectValue placeholder="Filter by program..." />
             </SelectTrigger>
@@ -117,7 +143,7 @@ export default function StudentTable() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell">{user.program}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{user.program?.match(/\(([^)]+)\)/)?.[1] || user.program}</TableCell>
                     <TableCell className="hidden md:table-cell">
                       <Badge variant={user.isBlocked ? 'destructive' : 'secondary'}>
                         {user.isBlocked ? 'Blocked' : 'Active'}
@@ -139,7 +165,7 @@ export default function StudentTable() {
                   <Users className="h-12 w-12 text-muted-foreground" />
                   <h3 className="mt-4 text-lg font-semibold">No Students Found</h3>
                   <p className="mt-2 text-sm text-muted-foreground">
-                      {filter === 'All Programs' ? 'No students have registered yet.' : 'No students found for this program.'}
+                      {searchTerm || programFilter !== 'All Programs' ? 'Try adjusting your search or filters.' : 'No students have registered yet.'}
                   </p>
               </div>
           )}
