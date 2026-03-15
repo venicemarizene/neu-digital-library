@@ -36,13 +36,13 @@ export function AdminSidebar() {
     <Sidebar>
       <SidebarHeader className="p-5">
         <div className="flex items-center gap-3">
-          <LibraryBig className="h-11 w-11 flex-shrink-0 text-primary" />
+          <LibraryBig className="h-11 w-11 flex-shrink-0 text-accent" />
           <div className="flex flex-col">
             <div className="flex flex-row items-end gap-1.5">
-              <span className="font-headline text-2xl font-bold leading-none tracking-tighter text-accent">
+              <span className="font-headline text-2xl font-bold leading-none tracking-tighter text-white">
                 CICS
               </span>
-              <span className="font-headline text-xl font-semibold leading-none text-sidebar-foreground/80">
+              <span className="font-headline text-xl font-semibold leading-none text-white">
                 DocHub
               </span>
             </div>

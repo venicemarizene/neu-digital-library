@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -398,7 +399,7 @@ export default function DocumentManager() {
                     <FormItem>
                       <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Input placeholder="A brief summary of the document." {...field} disabled={isSubmitting} />
+                        <Textarea placeholder="A brief summary of the document." {...field} disabled={isSubmitting} className="bg-[#F9F8F6]" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
