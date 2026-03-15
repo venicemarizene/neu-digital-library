@@ -25,7 +25,7 @@ export default function DocumentList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [downloading, setDownloading] = useState<string | null>(null);
-  const [view, setView] = useState<'grid' | 'grid'>('grid');
+  const [view, setView] = useState<'grid' | 'list'>('grid');
   const [sortOption, setSortOption] = useState<SortOption>('uploadedAt');
 
 
@@ -346,17 +346,6 @@ export default function DocumentList() {
                 />
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-                <div className="w-full sm:w-[200px]">
-                    <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Sort by" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="uploadedAt">Sort by: Newest</SelectItem>
-                            <SelectItem value="filename">Sort by: Alphabetical</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
                 <Button variant={view === 'grid' ? 'default' : 'outline'} onClick={() => setView('grid')}>
                     <LayoutGrid className="mr-2 h-4 w-4" />
                     Grid
@@ -367,13 +356,24 @@ export default function DocumentList() {
                 </Button>
             </div>
         </div>
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 w-full">
             <div className="flex gap-2 flex-wrap">
                 {categories.map(cat => (
                     <Button key={cat} variant={activeCategory === cat ? 'default' : 'outline'} onClick={() => setActiveCategory(cat)}>
                         {cat}
                     </Button>
                 ))}
+            </div>
+            <div className="w-full sm:w-auto md:w-[200px]">
+                <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="uploadedAt">Sort by: Newest</SelectItem>
+                        <SelectItem value="filename">Sort by: Alphabetical</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
         </div>
       </div>

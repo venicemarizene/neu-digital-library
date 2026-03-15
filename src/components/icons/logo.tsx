@@ -26,7 +26,7 @@ export function Logo({
             {brand}
           </span>
           <span
-            className={`font-headline text-xl font-semibold leading-none text-accent/80`}
+            className={`font-headline text-xl font-semibold leading-none text-accent`}
           >
             {name}
           </span>
