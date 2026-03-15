@@ -41,6 +41,10 @@ export default {
           DEFAULT: 'hsl(var(--accent))',
           foreground: 'hsl(var(--accent-foreground))',
         },
+        'interactive-hover': {
+          DEFAULT: 'hsl(var(--interactive-hover))',
+          foreground: 'hsl(var(--interactive-hover-foreground))',
+        },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',
