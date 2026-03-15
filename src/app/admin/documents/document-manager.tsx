@@ -232,13 +232,26 @@ export default function DocumentManager() {
   const handleDownload = async (doc: DocumentType) => {
     setDownloading(doc.id);
     try {
+      if (user && db) {
+        await addDoc(collection(db, 'Logs'), {
+            userId: user.uid,
+            documentId: doc.id,
+            action: 'download',
+            downloadedAt: serverTimestamp(),
+        });
+      }
+
+      const response = await fetch(doc.downloadURL);
+      if (!response.ok) throw new Error('Network response was not ok.');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = doc.downloadURL;
-      link.target = '_blank';
-      link.download = doc.filename;
+      link.href = url;
+      link.setAttribute('download', doc.filename);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
       
     } catch (error) {
       console.error('Error downloading document:', error);
