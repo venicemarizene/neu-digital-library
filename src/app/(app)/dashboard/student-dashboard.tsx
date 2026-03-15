@@ -1,83 +1,68 @@
 'use client';
-import { useState, useMemo, useEffect } from 'react';
-import { collection, query, where, orderBy, limit, getDocs, documentId, Timestamp, addDoc, serverTimestamp } from 'firebase/firestore';
-import { useUser, useFirestore, useCollection } from '@/firebase';
-import type { Document as DocumentType, DownloadLog } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { collection, addDoc, serverTimestamp, doc, updateDoc, increment, query, where, getDocs } from 'firebase/firestore';
+import { useUser, useFirestore } from '@/firebase';
+import type { Document as DocumentType } from '@/lib/types';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Download, Eye, Loader2, History } from 'lucide-react';
+import { FileText, Download, Eye, Loader2, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { personalizedDocumentRecommendations, PersonalizedDocumentRecommendationsOutput } from '@/ai/flows/personalized-document-recommendations';
 
 export default function StudentDashboard() {
-    const { user, isBlocked } = useUser();
+    const { appUser, user, isBlocked } = useUser();
     const db = useFirestore();
     const { toast } = useToast();
-    const [activeTab, setActiveTab] = useState<'view' | 'download'>('view');
-    const [documents, setDocuments] = useState<DocumentType[]>([]);
+    const [recommendations, setRecommendations] = useState<any[] | null>(null);
     const [loading, setLoading] = useState(true);
     const [downloading, setDownloading] = useState<string | null>(null);
 
-    const logConstraints = useMemo(() => {
-        if (!user) return [];
-        return [
-            where('userId', '==', user.uid),
-            where('action', '==', activeTab),
-            orderBy('downloadedAt', 'desc'),
-            limit(12)
-        ];
-    }, [user, activeTab]);
-
-    const { data: logs, loading: loadingLogs } = useCollection<DownloadLog>('Logs', { 
-        constraints: logConstraints, 
-        listen: true, 
-        skip: !user 
-    });
-
     useEffect(() => {
-        const fetchDocuments = async () => {
-            if (!logs || !db) {
-                if (!loadingLogs) {
-                    setDocuments([]);
-                    setLoading(false);
-                }
-                return;
-            }
-            if (logs.length === 0) {
-                setDocuments([]);
+        const getRecommendations = async () => {
+            if (!appUser?.program) {
                 setLoading(false);
                 return;
             }
 
-            setLoading(true);
-            const docIds = [...new Set(logs.map(log => log.documentId))];
-            
-            let fetchedDocs: DocumentType[] = [];
-
-            if (docIds.length > 0) {
-                try {
-                    const docsQuery = query(collection(db, 'Documents'), where(documentId(), 'in', docIds));
-                    const docSnapshots = await getDocs(docsQuery);
-                    fetchedDocs = docSnapshots.docs.map(doc => ({ id: doc.id, ...doc.data() } as DocumentType));
-                } catch (error) {
-                    console.error("Error fetching documents by IDs:", error);
-                }
-            }
-            
-            const docsMap = new Map(fetchedDocs.map(doc => [doc.id, doc]));
-
-            const sortedDocs = logs
-                .map(log => docsMap.get(log.documentId))
-                .filter((doc): doc is DocumentType => !!doc);
+            try {
+                const result = await personalizedDocumentRecommendations({ undergraduateProgram: appUser.program });
                 
-            const uniqueSortedDocs = Array.from(new Map(sortedDocs.map(doc => [doc.id, doc])).values());
+                const recsWithDocs: any[] = [];
+                if (result.recommendations && result.recommendations.length > 0 && db) {
+                    const titles = result.recommendations.map(r => r.title);
+                    if (titles.length > 0) {
+                        const docsQuery = query(collection(db, "Documents"), where('filename', 'in', titles));
+                        const docsSnapshot = await getDocs(docsQuery);
+                        const docsData = docsSnapshot.docs.map(d => ({id: d.id, ...d.data()}) as DocumentType);
+                        
+                        for(const rec of result.recommendations) {
+                            const matchingDoc = docsData.find(d => d.filename === rec.title);
+                            if (matchingDoc) {
+                                recsWithDocs.push({
+                                    ...rec,
+                                    doc: matchingDoc
+                                });
+                            }
+                        }
+                    }
+                }
+                setRecommendations(recsWithDocs);
 
-            setDocuments(uniqueSortedDocs);
-            setLoading(false);
+            } catch (error) {
+                console.error("Error getting AI recommendations:", error);
+                setRecommendations([]); // Set to empty array on error
+            } finally {
+                setLoading(false);
+            }
         };
 
-        fetchDocuments();
-    }, [logs, db, loadingLogs]);
+        if (appUser) {
+            getRecommendations();
+        } else if (!user) {
+            setLoading(false);
+        }
+    }, [appUser, user, db]);
     
     const handleView = async (doc: DocumentType) => {
         if (isBlocked) {
@@ -101,8 +86,8 @@ export default function StudentDashboard() {
         window.open(doc.downloadURL, '_blank');
     };
 
-    const handleDownload = async (doc: DocumentType) => {
-        if (!user) {
+    const handleDownload = async (docToDownload: DocumentType) => {
+        if (!user || !db) {
             toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to download files.' });
             return;
         }
@@ -110,27 +95,33 @@ export default function StudentDashboard() {
             toast({ variant: 'destructive', title: 'Account Restricted', description: 'Your account is restricted from downloading files.' });
             return;
         }
-        setDownloading(doc.id);
+        setDownloading(docToDownload.id);
         try {
+            // Increment download count
+            const docRef = doc(db, 'Documents', docToDownload.id);
+            await updateDoc(docRef, { downloads: increment(1) });
+            
+            // Log the download action
             await addDoc(collection(db, 'Logs'), {
                 userId: user.uid,
-                documentId: doc.id,
+                documentId: docToDownload.id,
                 action: 'download',
                 downloadedAt: serverTimestamp(),
             });
 
-            const response = await fetch(doc.downloadURL);
+            // Perform the download
+            const response = await fetch(docToDownload.downloadURL);
             if (!response.ok) throw new Error('Network response was not ok.');
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', doc.filename);
+            link.setAttribute('download', docToDownload.filename);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
-        
+            
         } catch (error) {
             console.error('Error downloading document:', error);
             toast({ variant: 'destructive', title: 'Download Failed', description: 'Could not download the file. Please try again.' });
@@ -139,90 +130,101 @@ export default function StudentDashboard() {
         }
     };
     
-    const renderDocGrid = (docs: DocumentType[]) => (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-          {docs.map((doc) => (
-            <Card key={doc.id} className="flex flex-col transition-all hover:shadow-lg">
-              <CardHeader>
-                <div className="flex items-start gap-4">
-                  <div className="bg-primary/10 p-2 rounded-md">
-                    <FileText className="h-6 w-6 flex-shrink-0 text-primary" />
-                  </div>
-                  <div>
-                    <CardTitle className="line-clamp-2 text-base font-headline">{doc.filename}</CardTitle>
-                    <CardDescription>{doc.category}</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardFooter className="flex items-center gap-2 mt-auto">
-                    <Button variant="outline" size="sm" onClick={() => handleView(doc)} disabled={isBlocked}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        View
-                    </Button>
-                    <Button size="sm" onClick={() => handleDownload(doc)} disabled={downloading === doc.id || isBlocked}>
-                    {downloading === doc.id ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                        <Download className="mr-2 h-4 w-4" />
-                    )}
-                    {downloading === doc.id ? 'Downloading' : 'Download'}
-                    </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-    );
-    
-    if (loading || loadingLogs) {
-        return (
-             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-                {[...Array(4)].map((_, i) => (
-                    <Card key={i}>
-                    <CardHeader className="flex-row items-start gap-4">
-                        <Skeleton className="h-10 w-10 rounded-md" />
+    const renderSkeleton = () => (
+        <Card>
+            <CardHeader>
+                <Skeleton className="h-6 w-1/3" />
+                <Skeleton className="h-4 w-2/3 mt-2" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                    <div key={i} className="flex items-start gap-4 p-4 border rounded-lg">
+                        <Skeleton className="h-8 w-8 mt-1 rounded-md" />
                         <div className="space-y-2 flex-1">
-                        <Skeleton className="h-5 w-3/4" />
-                        <Skeleton className="h-4 w-1/2" />
+                            <Skeleton className="h-5 w-3/4" />
+                            <Skeleton className="h-4 w-full" />
                         </div>
-                    </CardHeader>
-                    <CardFooter>
-                        <Skeleton className="h-9 w-20 mr-2" />
-                        <Skeleton className="h-9 w-24" />
-                    </CardFooter>
-                    </Card>
+                        <div className="flex items-center gap-2">
+                            <Skeleton className="h-9 w-20" />
+                            <Skeleton className="h-9 w-24" />
+                        </div>
+                    </div>
                 ))}
+            </CardContent>
+        </Card>
+    );
+
+    if (loading) {
+        return renderSkeleton();
+    }
+    
+    if (!appUser?.program) {
+         return (
+             <div className="flex flex-col items-center justify-center rounded-lg bg-card py-24 text-center shadow-md">
+                <Sparkles className="h-12 w-12 text-muted-foreground" />
+                <h3 className="mt-4 text-lg font-semibold">AI Recommendations</h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                   Select your program in your profile to get personalized document recommendations.
+                </p>
+                <Button onClick={() => window.location.href = '/profile'} className="mt-4">Go to Profile</Button>
+            </div>
+        )
+    }
+
+    if (!recommendations || recommendations.length === 0) {
+        return (
+             <div className="flex flex-col items-center justify-center rounded-lg bg-card py-24 text-center shadow-md">
+              <Sparkles className="h-12 w-12 text-muted-foreground" />
+              <h3 className="mt-4 text-lg font-semibold">No Recommendations For You</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                We couldn't find any specific document recommendations for your program right now.
+              </p>
             </div>
         )
     }
 
     return (
         <div className="space-y-6">
-            <div className="flex space-x-2">
-                <Button
-                    variant={activeTab === 'view' ? 'default' : 'outline'}
-                    onClick={() => setActiveTab('view')}
-                >
-                    Recently Viewed
-                </Button>
-                <Button
-                    variant={activeTab === 'download' ? 'default' : 'outline'}
-                    onClick={() => setActiveTab('download')}
-                >
-                    Recently Downloaded
-                </Button>
-            </div>
-            
-            {documents.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-lg bg-card py-24 text-center shadow-md">
-                  <History className="h-12 w-12 text-muted-foreground" />
-                  <h3 className="mt-4 text-lg font-semibold">No Recent Activity</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Your recently {activeTab === 'view' ? 'viewed' : 'downloaded'} documents will appear here.
-                  </p>
-                </div>
-              ) : (
-                renderDocGrid(documents)
-            )}
+           <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Sparkles className="h-6 w-6 text-primary" />
+                        Recommended For You
+                    </CardTitle>
+                    <CardDescription>Based on your program, here are some documents you might find helpful to get started.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid gap-4">
+                        {recommendations.map((rec) => (
+                            rec.doc ? (
+                                <Card key={rec.doc.id} className="flex flex-col sm:flex-row items-start gap-4 p-4 transition-all hover:shadow-md">
+                                    <div className="bg-primary/10 p-2 rounded-md mt-1">
+                                        <FileText className="h-6 w-6 flex-shrink-0 text-primary" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="font-bold text-base">{rec.doc.filename}</h4>
+                                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{rec.description}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-2 sm:mt-0 flex-shrink-0 self-start sm:self-center">
+                                        <Button variant="outline" size="sm" onClick={() => handleView(rec.doc)} disabled={isBlocked}>
+                                            <Eye className="mr-2 h-4 w-4" />
+                                            View
+                                        </Button>
+                                        <Button size="sm" onClick={() => handleDownload(rec.doc)} disabled={downloading === rec.doc.id || isBlocked}>
+                                        {downloading === rec.doc.id ? (
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <Download className="mr-2 h-4 w-4" />
+                                        )}
+                                        Download
+                                        </Button>
+                                    </div>
+                                </Card>
+                            ) : null
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }
