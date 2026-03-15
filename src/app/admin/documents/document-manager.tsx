@@ -555,7 +555,7 @@ export default function DocumentManager() {
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
                                                     <Button size="icon" variant="outline" onClick={() => handleView(doc as DocumentType)}>
-                                                        <Eye className="h-4 w-4" />
+                                                        <Eye className="h-4 w-4 text-primary" />
                                                         <span className="sr-only">View</span>
                                                     </Button>
                                                 </TooltipTrigger>

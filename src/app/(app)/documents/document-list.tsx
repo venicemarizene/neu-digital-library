@@ -150,7 +150,7 @@ export default function DocumentList() {
           </CardHeader>
           <CardFooter className="flex items-center gap-2 mt-auto">
                 <Button variant="outline" size="sm" onClick={() => handleView(doc as DocumentType)} disabled={isBlocked}>
-                    <Eye className="mr-2 h-4 w-4" />
+                    <Eye className="mr-2 h-4 w-4 text-primary" />
                     View
                 </Button>
                 <Button size="sm" onClick={() => handleDownload(doc as DocumentType)} disabled={downloading === doc.id || isBlocked}>
@@ -206,7 +206,7 @@ export default function DocumentList() {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button variant="ghost" size="icon" onClick={() => handleView(doc)} disabled={isBlocked}>
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-4 w-4 text-primary" />
                           <span className="sr-only">View</span>
                         </Button>
                       </TooltipTrigger>
@@ -247,7 +247,7 @@ export default function DocumentList() {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button variant="ghost" size="icon" onClick={() => handleView(doc)} disabled={isBlocked}>
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-4 w-4 text-primary" />
                           <span className="sr-only">View</span>
                         </Button>
                       </TooltipTrigger>
