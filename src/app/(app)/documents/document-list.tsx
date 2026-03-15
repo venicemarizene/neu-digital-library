@@ -25,53 +25,28 @@ export default function DocumentList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [downloading, setDownloading] = useState<string | null>(null);
-  const [view, setView] = useState<'grid' | 'list'>('grid');
+  const [view, setView] = useState<'grid' | 'grid'>('grid');
   const [sortOption, setSortOption] = useState<SortOption>('uploadedAt');
 
 
-  const allCicsConstraints = useMemo(() => [
-    where('visibility', '==', 'ALL_CICS'),
-    orderBy(sortOption, sortOption === 'uploadedAt' ? 'desc' : 'asc')
-  ], [sortOption]);
+  const documentConstraints = useMemo(() => {
+    if (!user) return [];
+    return [
+        where('allowedStudentIds', 'array-contains', user.uid),
+        orderBy(sortOption, sortOption === 'uploadedAt' ? 'desc' : 'asc')
+    ]
+  }, [user, sortOption]);
 
-  const programSpecificConstraints = useMemo(() => {
-      if (!appUser?.program) return [];
-      return [
-          where('visibility', '==', 'PROGRAM_SPECIFIC'),
-          where('targetProgram', '==', appUser.program),
-          orderBy(sortOption, sortOption === 'uploadedAt' ? 'desc' : 'asc')
-      ];
-  }, [appUser?.program, sortOption]);
-
-  const { data: allCicsDocs, loading: loadingAll } = useCollection<DocumentType>('Documents', { 
-    constraints: allCicsConstraints, 
+  const { data: allDocuments, loading: docsLoading } = useCollection<DocumentType>('Documents', { 
+    constraints: documentConstraints, 
     listen: true, 
     skip: userLoading || !user
   });
-  const { data: programDocs, loading: loadingProgram } = useCollection<DocumentType>('Documents', { 
-    constraints: programSpecificConstraints, 
-    listen: true, 
-    skip: userLoading || !appUser?.program 
-  });
-
-  const loading = userLoading || loadingAll || loadingProgram;
-
-  const allDocuments = useMemo(() => {
-    const firestoreDocs = [...(allCicsDocs || []), ...(programDocs || [])];
-    const uniqueFirestoreDocs = Array.from(new Map(firestoreDocs.map(doc => [doc.id, doc])).values());
-    
-    // The sorting is now done by Firestore, but we still need to merge and ensure uniqueness.
-    // A secondary client-side sort after merging ensures consistent order if timestamps are identical.
-    return uniqueFirestoreDocs.sort((a, b) => {
-        if (sortOption === 'uploadedAt') {
-            return (b.uploadedAt as any) - (a.uploadedAt as any);
-        }
-        return a.filename.localeCompare(b.filename);
-    });
-  }, [allCicsDocs, programDocs, sortOption]);
+  
+  const loading = userLoading || docsLoading;
   
   const filteredDocuments = useMemo(() => {
-    let docs = allDocuments;
+    let docs = allDocuments || [];
     if (activeCategory !== 'All') {
         docs = docs.filter(doc => (doc as any).category.toLowerCase() === activeCategory.toLowerCase());
     }
@@ -358,8 +333,8 @@ export default function DocumentList() {
         </Alert>
       )}
       <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-grow">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="relative flex-grow w-full sm:w-auto">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
                     type="search"
@@ -370,16 +345,26 @@ export default function DocumentList() {
                     disabled={isBlocked}
                 />
             </div>
-            <div className="w-full sm:w-[200px]">
-                <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Sort by" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="uploadedAt">Sort by: Newest</SelectItem>
-                        <SelectItem value="filename">Sort by: Alphabetical</SelectItem>
-                    </SelectContent>
-                </Select>
+            <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="w-full sm:w-[200px]">
+                    <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Sort by" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="uploadedAt">Sort by: Newest</SelectItem>
+                            <SelectItem value="filename">Sort by: Alphabetical</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <Button variant={view === 'grid' ? 'default' : 'outline'} onClick={() => setView('grid')}>
+                    <LayoutGrid className="mr-2 h-4 w-4" />
+                    Grid
+                </Button>
+                <Button variant={view === 'list' ? 'default' : 'outline'} onClick={() => setView('list')}>
+                    <List className="mr-2 h-4 w-4" />
+                    List
+                </Button>
             </div>
         </div>
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -389,16 +374,6 @@ export default function DocumentList() {
                         {cat}
                     </Button>
                 ))}
-            </div>
-            <div className="flex items-center gap-2">
-                <Button variant={view === 'grid' ? 'default' : 'outline'} onClick={() => setView('grid')}>
-                    <LayoutGrid className="mr-2 h-4 w-4" />
-                    Grid
-                </Button>
-                <Button variant={view === 'list' ? 'default' : 'outline'} onClick={() => setView('list')}>
-                    <List className="mr-2 h-4 w-4" />
-                    List
-                </Button>
             </div>
         </div>
       </div>

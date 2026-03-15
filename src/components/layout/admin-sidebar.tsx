@@ -37,8 +37,7 @@ export function AdminSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <Logo isDark={true}/>
-        <span className="text-lg font-medium text-white -mt-1 ml-11">Admin</span>
+        <Logo isDark={true} role="Admin"/>
       </SidebarHeader>
       <SidebarContent className="px-2">
         <SidebarMenu>

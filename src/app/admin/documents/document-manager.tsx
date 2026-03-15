@@ -510,41 +510,43 @@ export default function DocumentManager() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col gap-4 mb-6">
-                <div className="flex flex-col md:flex-row gap-4">
-                    <div className="relative flex-grow">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input
-                            type="search"
-                            placeholder="Search by file, description..."
-                            className="w-full pl-10"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
+                    <div className="flex flex-col md:flex-row gap-4 flex-grow w-full">
+                        <div className="relative flex-grow">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                            <Input
+                                type="search"
+                                placeholder="Search by file, description..."
+                                className="w-full pl-10"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        <Select value={programFilter} onValueChange={setProgramFilter}>
+                            <SelectTrigger className="w-full md:w-[240px]">
+                                <SelectValue placeholder="Filter by program..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {programFilterOptions.map((option) => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                        {option.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
-                    <Select value={programFilter} onValueChange={setProgramFilter}>
-                        <SelectTrigger className="w-full md:w-[240px]">
-                            <SelectValue placeholder="Filter by program..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {programFilterOptions.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className='flex'>
-                     <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
-                        <SelectTrigger className="w-full md:w-[240px]">
-                            <SelectValue placeholder="Sort by" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="downloads">Sort by: Most Downloaded</SelectItem>
-                            <SelectItem value="uploadedAt">Sort by: Newest</SelectItem>
-                            <SelectItem value="filename">Sort by: Alphabetical</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <div className="flex-shrink-0 w-full md:w-auto">
+                        <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
+                            <SelectTrigger className="w-full md:w-[240px]">
+                                <SelectValue placeholder="Sort by" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="downloads">Sort by: Most Downloaded</SelectItem>
+                                <SelectItem value="uploadedAt">Sort by: Newest</SelectItem>
+                                <SelectItem value="filename">Sort by: Alphabetical</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
                 <div className="flex gap-2 flex-wrap">
                     {allDocCategories.map(cat => (

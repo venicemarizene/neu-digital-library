@@ -36,8 +36,7 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <Logo isDark={true}/>
-        <span className="text-lg font-medium text-white -mt-1 ml-11">Student</span>
+        <Logo isDark={true} role="Student" />
       </SidebarHeader>
       <SidebarContent className="px-2">
         <SidebarMenu>
