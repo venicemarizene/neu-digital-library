@@ -3,10 +3,10 @@ import { useState, useMemo, useRef } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { collection, addDoc, serverTimestamp, deleteDoc, doc as firestoreDoc, Timestamp, updateDoc, increment } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, deleteDoc, doc as firestoreDoc, Timestamp, updateDoc, increment, getDocs, where } from 'firebase/firestore';
 import { useUser, useFirestore, useCollection } from '@/firebase';
 import { supabase } from '@/lib/supabaseClient';
-import type { Document as DocumentType } from '@/lib/types';
+import type { Document as DocumentType, AppUser } from '@/lib/types';
 import { orderBy } from 'firebase/firestore';
 import { format } from 'date-fns';
 
@@ -182,6 +182,20 @@ export default function DocumentManager() {
             await supabase.storage.from('documents').remove([uploadData.path]);
             return;
         }
+
+        let allowedStudentIds: string[] = [];
+
+        if (values.visibility === 'ALL_CICS') {
+            const usersRef = collection(db, 'Users');
+            const q = query(usersRef, where('isAdmin', '==', false));
+            const querySnapshot = await getDocs(q);
+            allowedStudentIds = querySnapshot.docs.map(doc => doc.id);
+        } else if (values.visibility === 'PROGRAM_SPECIFIC' && values.targetProgram) {
+            const usersRef = collection(db, 'Users');
+            const q = query(usersRef, where('program', '==', values.targetProgram));
+            const querySnapshot = await getDocs(q);
+            allowedStudentIds = querySnapshot.docs.map(doc => doc.id);
+        }
         
         const docData = {
             filename: file.name,
@@ -194,6 +208,7 @@ export default function DocumentManager() {
             visibility: values.visibility,
             targetProgram: values.visibility === 'PROGRAM_SPECIFIC' ? values.targetProgram : null,
             downloads: 0,
+            allowedStudentIds: allowedStudentIds
         };
 
         const documentsCollection = collection(db, 'Documents');
@@ -518,6 +533,8 @@ export default function DocumentManager() {
                             ))}
                         </SelectContent>
                     </Select>
+                </div>
+                <div className='flex'>
                      <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
                         <SelectTrigger className="w-full md:w-[240px]">
                             <SelectValue placeholder="Sort by" />

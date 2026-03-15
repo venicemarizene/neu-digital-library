@@ -37,7 +37,7 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="p-4">
         <Logo isDark={true}/>
-        <span className="text-lg font-medium text-sidebar-foreground/80 -mt-1 ml-11">Student</span>
+        <span className="text-lg font-medium text-white -mt-1 ml-11">Student</span>
       </SidebarHeader>
       <SidebarContent className="px-2">
         <SidebarMenu>
