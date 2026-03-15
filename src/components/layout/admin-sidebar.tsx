@@ -34,19 +34,19 @@ export function AdminSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
-          <LibraryBig className="h-10 w-10 flex-shrink-0 text-primary" />
+      <SidebarHeader className="p-5">
+        <div className="flex items-center gap-3">
+          <LibraryBig className="h-11 w-11 flex-shrink-0 text-primary" />
           <div className="flex flex-col">
             <div className="flex flex-row items-end gap-1.5">
-              <span className="font-headline text-xl font-bold leading-none tracking-tighter text-accent">
+              <span className="font-headline text-2xl font-bold leading-none tracking-tighter text-accent">
                 CICS
               </span>
-              <span className="font-headline text-lg font-semibold leading-none text-sidebar-foreground/80">
+              <span className="font-headline text-xl font-semibold leading-none text-sidebar-foreground/80">
                 DocHub
               </span>
             </div>
-            <span className="text-base font-medium text-sidebar-foreground/60">Admin</span>
+            <span className="text-lg font-medium text-sidebar-foreground/60">Admin</span>
           </div>
         </div>
       </SidebarHeader>
