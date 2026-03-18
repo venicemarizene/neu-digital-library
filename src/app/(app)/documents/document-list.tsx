@@ -31,7 +31,7 @@ export default function DocumentList() {
 
 const [allDocuments, setAllDocuments] = useState<DocumentType[]>([]);
 const [docsLoading, setDocsLoading] = useState(true);
-const [viewedDocIds, setViewedDocIds] = useState<Set<string>>(new Set());
+const [interactedDocIds, setInteractedDocIds] = useState<Set<string>>(new Set());
 const [logsLoading, setLogsLoading] = useState(true);
 
 useEffect(() => {
@@ -40,26 +40,26 @@ useEffect(() => {
     return;
   };
 
-  const fetchViewedLogs = async () => {
+  const fetchInteractionLogs = async () => {
     setLogsLoading(true);
     try {
       const logsQuery = query(
         collection(db, "Logs"),
         where('userId', '==', user.uid),
-        where('action', '==', 'view')
+        where('action', 'in', ['view', 'download'])
       );
       const logsSnapshot = await getDocs(logsQuery);
       const ids = new Set(logsSnapshot.docs.map(d => d.data().documentId as string));
-      setViewedDocIds(ids);
+      setInteractedDocIds(ids);
     } catch (error) {
-      console.error("Error fetching viewed logs:", error);
+      console.error("Error fetching interaction logs:", error);
       // Silently fail, badges for unseen docs just won't show.
     } finally {
       setLogsLoading(false);
     }
   };
 
-  fetchViewedLogs();
+  fetchInteractionLogs();
 }, [user, db]);
 
 useEffect(() => {
@@ -143,7 +143,7 @@ useEffect(() => {
     }
     
     // Immediately update local state to remove the 'New' badge
-    setViewedDocIds(prevIds => new Set(prevIds).add(doc.id));
+    setInteractedDocIds(prevIds => new Set(prevIds).add(doc.id));
 
     if (user && db) {
         try {
@@ -170,6 +170,9 @@ useEffect(() => {
       toast({ variant: 'destructive', title: 'Account Restricted', description: 'Your account is restricted from downloading files.' });
       return;
     }
+    
+    setInteractedDocIds(prevIds => new Set(prevIds).add(docToDownload.id));
+
     setDownloading(docToDownload.id);
     try {
       // Increment download count
@@ -212,7 +215,7 @@ useEffect(() => {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
         {docs.map((doc) => {
           const isNewByDate = doc.uploadedAt && doc.uploadedAt.toDate() > sevenDaysAgo;
-          const isUnseen = !viewedDocIds.has(doc.id);
+          const isUnseen = !interactedDocIds.has(doc.id);
           const showNewBadge = isNewByDate || isUnseen;
           return (
             <Tooltip key={doc.id}>
@@ -280,7 +283,7 @@ useEffect(() => {
       <div className="divide-y divide-border">
         {docs.map((doc) => {
             const isNewByDate = doc.uploadedAt && doc.uploadedAt.toDate() > sevenDaysAgo;
-            const isUnseen = !viewedDocIds.has(doc.id);
+            const isUnseen = !interactedDocIds.has(doc.id);
             const showNewBadge = isNewByDate || isUnseen;
             return (
               <div key={doc.id} className="p-4 hover:bg-muted/50 transition-colors">
