@@ -141,6 +141,9 @@ useEffect(() => {
       toast({ variant: 'destructive', title: 'Account Restricted', description: 'Your account is restricted from viewing files.' });
       return;
     }
+    
+    // Immediately update local state to remove the 'New' badge
+    setViewedDocIds(prevIds => new Set(prevIds).add(doc.id));
 
     if (user && db) {
         try {
