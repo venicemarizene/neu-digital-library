@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Download, FileText, Loader2, Search, Ban, Eye, LayoutGrid, List } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { format } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -31,6 +31,36 @@ export default function DocumentList() {
 
 const [allDocuments, setAllDocuments] = useState<DocumentType[]>([]);
 const [docsLoading, setDocsLoading] = useState(true);
+const [viewedDocIds, setViewedDocIds] = useState<Set<string>>(new Set());
+const [logsLoading, setLogsLoading] = useState(true);
+
+useEffect(() => {
+  if (!user || !db) {
+    setLogsLoading(false);
+    return;
+  };
+
+  const fetchViewedLogs = async () => {
+    setLogsLoading(true);
+    try {
+      const logsQuery = query(
+        collection(db, "Logs"),
+        where('userId', '==', user.uid),
+        where('action', '==', 'view')
+      );
+      const logsSnapshot = await getDocs(logsQuery);
+      const ids = new Set(logsSnapshot.docs.map(d => d.data().documentId as string));
+      setViewedDocIds(ids);
+    } catch (error) {
+      console.error("Error fetching viewed logs:", error);
+      // Silently fail, badges for unseen docs just won't show.
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
+  fetchViewedLogs();
+}, [user, db]);
 
 useEffect(() => {
   if (!user || !appUser?.program || !db) return;
@@ -73,7 +103,7 @@ useEffect(() => {
   fetchDocs();
 }, [user, appUser?.program, db]);
   
-  const loading = userLoading || docsLoading;
+  const loading = userLoading || docsLoading || logsLoading;
   
   const filteredDocuments = useMemo(() => {
     if (!allDocuments) return [];
@@ -172,55 +202,68 @@ useEffect(() => {
     }
   };
 
-  const renderGrid = (docs: DocumentType[]) => (
+  const renderGrid = (docs: DocumentType[]) => {
+    const sevenDaysAgo = subDays(new Date(), 7);
+    return (
     <TooltipProvider delayDuration={100}>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-        {docs.map((doc) => (
-          <Tooltip key={doc.id}>
-            <TooltipTrigger asChild>
-              <Card className="flex flex-col transition-all hover:shadow-lg rounded-lg">
-                <CardHeader>
-                  <div className="flex items-start gap-4">
-                    <div className="bg-primary/10 p-2 rounded-md">
-                      <FileText className="h-6 w-6 flex-shrink-0 text-primary" />
+        {docs.map((doc) => {
+          const isNewByDate = doc.uploadedAt && doc.uploadedAt.toDate() > sevenDaysAgo;
+          const isUnseen = !viewedDocIds.has(doc.id);
+          const showNewBadge = isNewByDate || isUnseen;
+          return (
+            <Tooltip key={doc.id}>
+              <TooltipTrigger asChild>
+                <Card className="relative flex flex-col transition-all hover:shadow-lg rounded-lg">
+                  {showNewBadge && (
+                    <Badge className="absolute top-3 right-3 z-10 bg-blue-100 text-blue-800 text-xs font-medium rounded-full px-2 py-0.5 border-transparent hover:bg-blue-100">
+                      New
+                    </Badge>
+                  )}
+                  <CardHeader>
+                    <div className="flex items-start gap-4">
+                      <div className="bg-primary/10 p-2 rounded-md">
+                        <FileText className="h-6 w-6 flex-shrink-0 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="line-clamp-2 text-base font-headline">{doc.filename}</CardTitle>
+                        <CardDescription>{doc.category}</CardDescription>
+                      </div>
                     </div>
-                    <div>
-                      <CardTitle className="line-clamp-2 text-base font-headline">{doc.filename}</CardTitle>
-                      <CardDescription>{doc.category}</CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardFooter className="flex items-center gap-2 mt-auto">
-                      <Button variant="outline" size="sm" onClick={() => handleView(doc as DocumentType)} disabled={isBlocked}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          View
-                      </Button>
-                      <Button size="sm" onClick={() => handleDownload(doc as DocumentType)} disabled={downloading === doc.id || isBlocked}>
-                        {downloading === doc.id ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Download className="mr-2 h-4 w-4" />
-                        )}
-                        {downloading === doc.id ? 'Downloading' : 'Download'}
-                      </Button>
-                </CardFooter>
-              </Card>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" align="center" className="max-w-xs">
-              <div className="space-y-1.5 p-2 text-left">
-                <p className="font-semibold text-sm">{doc.description || 'No description available.'}</p>
-                <p className="text-xs text-muted-foreground">
-                    Uploaded: {doc.uploadedAt ? format(doc.uploadedAt.toDate(), 'PPP') : 'N/A'}
-                </p>
-              </div>
-            </TooltipContent>
-          </Tooltip>
-        ))}
+                  </CardHeader>
+                  <CardFooter className="flex items-center gap-2 mt-auto">
+                        <Button variant="outline" size="sm" onClick={() => handleView(doc as DocumentType)} disabled={isBlocked}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                        </Button>
+                        <Button size="sm" onClick={() => handleDownload(doc as DocumentType)} disabled={downloading === doc.id || isBlocked}>
+                          {downloading === doc.id ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Download className="mr-2 h-4 w-4" />
+                          )}
+                          {downloading === doc.id ? 'Downloading' : 'Download'}
+                        </Button>
+                  </CardFooter>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" align="center" className="max-w-xs">
+                <div className="space-y-1.5 p-2 text-left">
+                  <p className="font-semibold text-sm">{doc.description || 'No description available.'}</p>
+                  <p className="text-xs text-muted-foreground">
+                      Uploaded: {doc.uploadedAt ? format(doc.uploadedAt.toDate(), 'PPP') : 'N/A'}
+                  </p>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          )})}
       </div>
     </TooltipProvider>
-  );
+  )};
 
-  const renderList = (docs: DocumentType[]) => (
+  const renderList = (docs: DocumentType[]) => {
+    const sevenDaysAgo = subDays(new Date(), 7);
+    return (
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
       {/* Header for desktop */}
       <div className="hidden md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] gap-4 items-center px-6 py-3 border-b">
@@ -232,114 +275,124 @@ useEffect(() => {
 
       {/* Rows */}
       <div className="divide-y divide-border">
-        {docs.map((doc) => (
-          <div key={doc.id} className="p-4 hover:bg-muted/50 transition-colors">
-            {/* Desktop View */}
-            <div className="hidden md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] gap-4 items-center">
-              <div className="flex items-center gap-4">
-                <div className="bg-primary/10 text-primary p-2 rounded-lg">
-                  <FileText className="h-6 w-6"/>
-                </div>
-                <div>
-                  <p className="font-bold text-foreground line-clamp-1">{doc.filename}</p>
-                  <p className="text-sm text-muted-foreground">PDF Document</p>
-                </div>
-              </div>
-              <div>
-                <Badge className={`font-semibold border-transparent ${doc.visibility === 'ALL_CICS' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}`}>
-                  {doc.visibility === 'ALL_CICS' ? 'All CICS' : 'Program-specified'}
-                </Badge>
-              </div>
-              <p className="text-muted-foreground text-sm">
-                {doc.uploadedAt ? format(doc.uploadedAt.toDate(), 'PPP') : 'N/A'}
-              </p>
-              <div className="flex justify-end">
-                <TooltipProvider>
-                  <div className="flex items-center justify-end gap-1">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={() => handleView(doc)} disabled={isBlocked}>
-                          <Eye className="h-4 w-4" />
-                          <span className="sr-only">View</span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent><p>View</p></TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={() => handleDownload(doc)} disabled={downloading === doc.id || isBlocked}>
-                          {downloading === doc.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Download className="h-4 w-4" />
-                          )}
-                          <span className="sr-only">Download</span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent><p>Download</p></TooltipContent>
-                    </Tooltip>
-                  </div>
-                </TooltipProvider>
-              </div>
-            </div>
-
-            {/* Mobile View */}
-            <div className="md:hidden flex flex-col gap-4">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="bg-primary/10 text-primary p-2 rounded-lg">
-                    <FileText className="h-6 w-6"/>
+        {docs.map((doc) => {
+            const isNewByDate = doc.uploadedAt && doc.uploadedAt.toDate() > sevenDaysAgo;
+            const isUnseen = !viewedDocIds.has(doc.id);
+            const showNewBadge = isNewByDate || isUnseen;
+            return (
+              <div key={doc.id} className="p-4 hover:bg-muted/50 transition-colors">
+                {/* Desktop View */}
+                <div className="hidden md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] gap-4 items-center">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-primary/10 text-primary p-2 rounded-lg">
+                      <FileText className="h-6 w-6"/>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-foreground line-clamp-1">{doc.filename}</p>
+                        {showNewBadge && <Badge className="bg-blue-100 text-blue-800 border-transparent text-xs font-medium px-2 py-0.5 hover:bg-blue-100">New</Badge>}
+                      </div>
+                      <p className="text-sm text-muted-foreground">PDF Document</p>
+                    </div>
                   </div>
                   <div>
-                    <p className="font-bold text-foreground line-clamp-2">{doc.filename}</p>
-                    <p className="text-sm text-muted-foreground">PDF Document</p>
+                    <Badge className={`font-semibold border-transparent ${doc.visibility === 'ALL_CICS' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}`}>
+                      {doc.visibility === 'ALL_CICS' ? 'All CICS' : 'Program-specified'}
+                    </Badge>
+                  </div>
+                  <p className="text-muted-foreground text-sm">
+                    {doc.uploadedAt ? format(doc.uploadedAt.toDate(), 'PPP') : 'N/A'}
+                  </p>
+                  <div className="flex justify-end">
+                    <TooltipProvider>
+                      <div className="flex items-center justify-end gap-1">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" onClick={() => handleView(doc)} disabled={isBlocked}>
+                              <Eye className="h-4 w-4" />
+                              <span className="sr-only">View</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent><p>View</p></TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" onClick={() => handleDownload(doc)} disabled={downloading === doc.id || isBlocked}>
+                              {downloading === doc.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Download className="h-4 w-4" />
+                              )}
+                              <span className="sr-only">Download</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent><p>Download</p></TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </TooltipProvider>
                   </div>
                 </div>
-                <TooltipProvider>
-                  <div className="flex items-center gap-1">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={() => handleView(doc)} disabled={isBlocked}>
-                          <Eye className="h-4 w-4" />
-                          <span className="sr-only">View</span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent><p>View</p></TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={() => handleDownload(doc)} disabled={downloading === doc.id || isBlocked}>
-                          {downloading === doc.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Download className="h-4 w-4" />
-                          )}
-                          <span className="sr-only">Download</span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent><p>Download</p></TooltipContent>
-                    </Tooltip>
+
+                {/* Mobile View */}
+                <div className="md:hidden flex flex-col gap-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className="bg-primary/10 text-primary p-2 rounded-lg">
+                        <FileText className="h-6 w-6"/>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start gap-2">
+                            <p className="font-bold text-foreground line-clamp-2 flex-grow">{doc.filename}</p>
+                            {showNewBadge && <Badge className="bg-blue-100 text-blue-800 border-transparent text-xs font-medium px-2 py-0.5 flex-shrink-0 mt-1 hover:bg-blue-100">New</Badge>}
+                        </div>
+                        <p className="text-sm text-muted-foreground">PDF Document</p>
+                      </div>
+                    </div>
+                    <TooltipProvider>
+                      <div className="flex items-center gap-1">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" onClick={() => handleView(doc)} disabled={isBlocked}>
+                              <Eye className="h-4 w-4" />
+                              <span className="sr-only">View</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent><p>View</p></TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" onClick={() => handleDownload(doc)} disabled={downloading === doc.id || isBlocked}>
+                              {downloading === doc.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Download className="h-4 w-4" />
+                              )}
+                              <span className="sr-only">Download</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent><p>Download</p></TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </TooltipProvider>
                   </div>
-                </TooltipProvider>
-              </div>
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-card-foreground">Visibility:</span>
-                  <Badge className={`font-semibold border-transparent ${doc.visibility === 'ALL_CICS' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}`}>
-                    {doc.visibility === 'ALL_CICS' ? 'All CICS' : 'Program-specified'}
-                  </Badge>
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-card-foreground">Visibility:</span>
+                      <Badge className={`font-semibold border-transparent ${doc.visibility === 'ALL_CICS' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}`}>
+                        {doc.visibility === 'ALL_CICS' ? 'All CICS' : 'Program-specified'}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-card-foreground">Uploaded:</span>
+                      <span>{doc.uploadedAt ? format(doc.uploadedAt.toDate(), 'PPP') : 'N/A'}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-card-foreground">Uploaded:</span>
-                  <span>{doc.uploadedAt ? format(doc.uploadedAt.toDate(), 'PPP') : 'N/A'}</span>
-                </div>
               </div>
-            </div>
-          </div>
-        ))}
+          )})}
       </div>
     </div>
-  );
+  )};
 
   if (loading) {
     return (
