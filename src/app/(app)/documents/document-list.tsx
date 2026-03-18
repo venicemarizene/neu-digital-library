@@ -31,11 +31,12 @@ export default function DocumentList() {
 
   const documentConstraints = useMemo(() => {
     if (!user) return [];
+    // The query MUST be filtered by allowedStudentIds to comply with security rules.
+    // Sorting will be handled on the client to avoid Firestore's composite index limitations.
     return [
         where('allowedStudentIds', 'array-contains', user.uid),
-        orderBy(sortOption, sortOption === 'uploadedAt' ? 'desc' : 'asc')
     ]
-  }, [user, sortOption]);
+  }, [user]);
 
   const { data: allDocuments, loading: docsLoading } = useCollection<DocumentType>('Documents', { 
     constraints: documentConstraints, 
@@ -46,7 +47,24 @@ export default function DocumentList() {
   const loading = userLoading || docsLoading;
   
   const filteredDocuments = useMemo(() => {
-    let docs = allDocuments || [];
+    if (!allDocuments) return [];
+
+    // Create a mutable copy to sort
+    let docs = [...allDocuments];
+  
+    // Client-side sorting
+    docs.sort((a, b) => {
+      if (sortOption === 'uploadedAt') {
+        const dateA = a.uploadedAt?.toDate()?.getTime() || 0;
+        const dateB = b.uploadedAt?.toDate()?.getTime() || 0;
+        return dateB - dateA; // descending for newest
+      }
+      if (sortOption === 'filename') {
+        return a.filename.localeCompare(b.filename); // ascending for alphabetical
+      }
+      return 0;
+    });
+
     if (activeCategory !== 'All') {
         docs = docs.filter(doc => (doc as any).category.toLowerCase() === activeCategory.toLowerCase());
     }
@@ -57,7 +75,7 @@ export default function DocumentList() {
         );
     }
     return docs;
-  }, [allDocuments, searchTerm, activeCategory]);
+  }, [allDocuments, searchTerm, activeCategory, sortOption]);
 
   const handleView = async (doc: DocumentType) => {
     if (isBlocked) {
