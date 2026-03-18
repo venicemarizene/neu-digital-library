@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, User, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Logo } from '@/components/icons/logo';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 
@@ -133,9 +132,27 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-        <header className="bg-sidebar text-white p-4 flex justify-between items-center shadow-md">
-            <Logo isDark={true} name="DocHub" brand="CICS" />
-            <span className="text-base font-semibold text-sidebar-foreground">New Era University</span>
+        <header className="bg-background text-foreground p-4 flex justify-between items-center shadow-md">
+            <div className="flex items-center gap-3">
+                 <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full overflow-hidden bg-white">
+                    <Image
+                        src="/NEU_LOGO.png"
+                        alt="New Era University"
+                        width={50}
+                        height={50}
+                        className="object-cover w-full h-full"
+                    />
+                </div>
+                <span className="text-xl font-semibold text-accent">New Era University</span>
+            </div>
+            <div className="flex flex-row items-baseline gap-1.5">
+                <span className="font-headline text-2xl font-bold leading-none tracking-tighter">
+                    CICS
+                </span>
+                <span className="font-headline text-xl font-semibold leading-none">
+                    DocHub
+                </span>
+            </div>
         </header>
 
         <main className="flex flex-1 w-full flex-col items-center justify-center p-4">
@@ -151,7 +168,10 @@ export default function LoginPage() {
                                 className="object-cover"
                             />
                         </div>
-                        <h1 className="text-2xl font-bold tracking-tight">CICS DocHub</h1>
+                        <h1 className="text-2xl font-bold tracking-tight">
+                            <span className="text-accent">CICS</span>
+                            <span className="text-foreground"> DocHub</span>
+                        </h1>
                         <p className="text-muted-foreground text-sm">Digital Library for CICS Students & Faculty</p>
                     </div>
 
@@ -181,10 +201,10 @@ export default function LoginPage() {
             </Card>
         </main>
         
-        <footer className="bg-sidebar text-gray-400 p-4 text-center text-xs">
+        <footer className="bg-background text-muted-foreground p-4 text-center text-xs">
             <div className="flex flex-wrap justify-center items-center gap-x-4 gap-y-1">
                 <span>© 2026 New Era University</span>
-                <span className="hidden sm:inline text-gray-600">•</span>
+                <span className="hidden sm:inline text-muted-foreground/50">•</span>
                 <span>College of Informatics and Computing Science</span>
             </div>
         </footer>
