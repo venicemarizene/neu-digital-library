@@ -1,6 +1,7 @@
 'use client';
 import { cn } from "@/lib/utils";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 interface PageHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
     title: string;
@@ -18,7 +19,10 @@ export function PageHeader({ title, description, children, className, ...props }
                     {description && <p className="text-muted-foreground">{description}</p>}
                 </div>
             </div>
-            {children && <div className="flex-shrink-0 w-full md:w-auto">{children}</div>}
+            <div className="flex items-center gap-2">
+                {children && <div className="flex-shrink-0 w-full md:w-auto">{children}</div>}
+                <ThemeToggle />
+            </div>
         </div>
     );
 }
