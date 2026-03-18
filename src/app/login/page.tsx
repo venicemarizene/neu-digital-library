@@ -133,9 +133,9 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-        <header className="bg-[#1a2235] text-white p-4 flex justify-between items-center shadow-md">
-            <span className="text-sm text-gray-400 font-medium">New Era University</span>
+        <header className="bg-sidebar text-white p-4 flex justify-between items-center shadow-md">
             <Logo isDark={true} name="DocHub" brand="CICS" />
+            <span className="text-base font-semibold text-sidebar-foreground">New Era University</span>
         </header>
 
         <main className="flex flex-1 w-full flex-col items-center justify-center p-4">
@@ -181,9 +181,9 @@ export default function LoginPage() {
             </Card>
         </main>
         
-        <footer className="bg-[#1a2235] text-gray-400 p-4 text-center text-xs">
+        <footer className="bg-sidebar text-gray-400 p-4 text-center text-xs">
             <div className="flex flex-wrap justify-center items-center gap-x-4 gap-y-1">
-                <span>© 2026 New Era University — CICS</span>
+                <span>© 2026 New Era University</span>
                 <span className="hidden sm:inline text-gray-600">•</span>
                 <span>College of Informatics and Computing Science</span>
             </div>
