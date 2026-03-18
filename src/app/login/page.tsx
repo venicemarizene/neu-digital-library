@@ -134,8 +134,8 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
         <header className="bg-[#1a2235] text-white p-4 flex justify-between items-center shadow-md">
-            <Logo isDark={true} name="DocHub" brand="CICS" />
             <span className="text-sm text-gray-400 font-medium">New Era University</span>
+            <Logo isDark={true} name="DocHub" brand="CICS" />
         </header>
 
         <main className="flex flex-1 w-full flex-col items-center justify-center p-4">
@@ -151,7 +151,7 @@ export default function LoginPage() {
                                 className="object-cover"
                             />
                         </div>
-                        <h1 className="text-2xl font-bold tracking-tight">CICS DocHub Login</h1>
+                        <h1 className="text-2xl font-bold tracking-tight">CICS DocHub</h1>
                         <p className="text-muted-foreground text-sm">Digital Library for CICS Students & Faculty</p>
                     </div>
 
@@ -186,8 +186,6 @@ export default function LoginPage() {
                 <span>© 2026 New Era University — CICS</span>
                 <span className="hidden sm:inline text-gray-600">•</span>
                 <span>College of Informatics and Computing Science</span>
-                <span className="hidden sm:inline text-gray-600">•</span>
-                <span>Digital Repository</span>
             </div>
         </footer>
     </div>
