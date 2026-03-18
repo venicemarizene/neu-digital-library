@@ -11,6 +11,7 @@ import { Loader2, User, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg viewBox="0 0 48 48" {...props}>
@@ -132,7 +133,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-        <header className="bg-background text-foreground p-4 flex justify-between items-center shadow-md">
+        <header className="bg-background text-foreground p-4 flex justify-between items-center border-b border-border">
             <div className="flex items-center gap-3">
                  <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full overflow-hidden bg-white">
                     <Image
@@ -145,18 +146,21 @@ export default function LoginPage() {
                 </div>
                 <span className="text-xl font-semibold text-accent">New Era University</span>
             </div>
-            <div className="flex flex-row items-baseline gap-1.5">
-                <span className="font-headline text-2xl font-bold leading-none tracking-tighter">
-                    CICS
-                </span>
-                <span className="font-headline text-xl font-semibold leading-none">
-                    DocHub
-                </span>
+            <div className="flex items-center gap-4">
+                <div className="flex flex-row items-baseline gap-1.5">
+                    <span className="font-headline text-2xl font-bold leading-none tracking-tighter">
+                        CICS
+                    </span>
+                    <span className="font-headline text-xl font-semibold leading-none">
+                        DocHub
+                    </span>
+                </div>
+                <ThemeToggle />
             </div>
         </header>
 
         <main className="flex flex-1 w-full flex-col items-center justify-center p-4">
-            <Card className="w-full max-w-[420px] shadow-2xl rounded-[20px] border-none">
+            <Card className="w-full max-w-[420px] shadow-2xl rounded-xl dark:border dark:border-border">
                 <CardContent className="p-12 flex flex-col items-center gap-8">
                     <div className="text-center space-y-2">
                         <div className="mx-auto flex h-[72px] w-[72px] items-center justify-center rounded-full bg-white overflow-hidden mb-4">
@@ -176,7 +180,7 @@ export default function LoginPage() {
                     </div>
 
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                        <TabsList className="grid w-full grid-cols-2 h-12">
+                        <TabsList className="grid w-full grid-cols-2 h-12 rounded-xl">
                             <TabsTrigger value="student" className="h-full text-base gap-2">
                                 <User className="h-5 w-5" />
                                 Student
@@ -189,7 +193,7 @@ export default function LoginPage() {
                     </Tabs>
 
                     <div className="w-full space-y-2">
-                        <Button onClick={handleSignIn} className="w-full h-12 text-base" disabled={loading}>
+                        <Button onClick={handleSignIn} className="w-full h-12 text-base rounded-xl bg-primary text-primary-foreground hover:bg-primary/90" disabled={loading}>
                             {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <GoogleIcon className="mr-2 h-6 w-6" />}
                             {loading ? "Verifying..." : "Sign in with Google"}
                         </Button>
@@ -201,7 +205,7 @@ export default function LoginPage() {
             </Card>
         </main>
         
-        <footer className="bg-background text-muted-foreground p-4 text-center text-xs">
+        <footer className="bg-background text-muted-foreground p-4 text-center text-xs border-t border-border">
             <div className="flex flex-wrap justify-center items-center gap-x-4 gap-y-1">
                 <span>© 2026 New Era University</span>
                 <span className="hidden sm:inline text-muted-foreground/50">•</span>
