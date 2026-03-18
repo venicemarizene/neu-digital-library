@@ -208,15 +208,37 @@ useEffect(() => {
     }
   };
 
+  const Highlight = ({ text, term }: { text: string | null | undefined; term: string }) => {
+    if (!term.trim() || !text) {
+      return <>{text}</>;
+    }
+    const regex = new RegExp(`(${term.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi');
+    const parts = text.split(regex);
+    return (
+      <>
+        {parts.map((part, i) =>
+          regex.test(part) && part.toLowerCase() === term.toLowerCase() ? (
+            <mark key={i} className="bg-yellow-200 font-bold px-0 text-black rounded">
+              {part}
+            </mark>
+          ) : (
+            part
+          )
+        )}
+      </>
+    );
+  };
+
   const renderGrid = (docs: DocumentType[]) => {
     const sevenDaysAgo = subDays(new Date(), 7);
     return (
     <TooltipProvider delayDuration={100}>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
         {docs.map((doc) => {
+          const hasInteracted = interactedDocIds.has(doc.id);
           const isNewByDate = doc.uploadedAt && doc.uploadedAt.toDate() > sevenDaysAgo;
-          const isUnseen = !interactedDocIds.has(doc.id);
-          const showNewBadge = isNewByDate || isUnseen;
+          const isUnseen = !hasInteracted;
+          const showNewBadge = !hasInteracted && (isNewByDate || isUnseen);
           return (
             <Tooltip key={doc.id}>
               <TooltipTrigger asChild>
@@ -232,7 +254,9 @@ useEffect(() => {
                         <FileText className="h-6 w-6 flex-shrink-0 text-primary" />
                       </div>
                       <div>
-                        <CardTitle className="line-clamp-2 text-base font-headline">{doc.filename}</CardTitle>
+                        <CardTitle className="line-clamp-2 text-base font-headline">
+                          <Highlight text={doc.filename} term={searchTerm} />
+                        </CardTitle>
                         <CardDescription>{doc.category}</CardDescription>
                       </div>
                     </div>
@@ -255,7 +279,9 @@ useEffect(() => {
               </TooltipTrigger>
               <TooltipContent side="bottom" align="center" className="max-w-xs">
                 <div className="space-y-1.5 p-2 text-left">
-                  <p className="font-semibold text-sm">{doc.description || 'No description available.'}</p>
+                  <p className="font-semibold text-sm">
+                    <Highlight text={doc.description || 'No description available.'} term={searchTerm} />
+                  </p>
                   <p className="text-xs text-muted-foreground">
                       Uploaded: {doc.uploadedAt ? format(doc.uploadedAt.toDate(), 'PPP') : 'N/A'}
                   </p>
@@ -282,9 +308,10 @@ useEffect(() => {
       {/* Rows */}
       <div className="divide-y divide-border">
         {docs.map((doc) => {
+            const hasInteracted = interactedDocIds.has(doc.id);
             const isNewByDate = doc.uploadedAt && doc.uploadedAt.toDate() > sevenDaysAgo;
-            const isUnseen = !interactedDocIds.has(doc.id);
-            const showNewBadge = isNewByDate || isUnseen;
+            const isUnseen = !hasInteracted;
+            const showNewBadge = !hasInteracted && (isNewByDate || isUnseen);
             return (
               <div key={doc.id} className="p-4 hover:bg-muted/50 transition-colors">
                 {/* Desktop View */}
@@ -295,7 +322,9 @@ useEffect(() => {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="font-bold text-foreground line-clamp-1">{doc.filename}</p>
+                        <p className="font-bold text-foreground line-clamp-1">
+                          <Highlight text={doc.filename} term={searchTerm} />
+                        </p>
                         {showNewBadge && <Badge className="bg-blue-100 text-blue-800 border-transparent text-xs font-medium px-2 py-0.5 hover:bg-blue-100">New</Badge>}
                       </div>
                       <p className="text-sm text-muted-foreground">PDF Document</p>
@@ -348,7 +377,9 @@ useEffect(() => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start gap-2">
-                            <p className="font-bold text-foreground line-clamp-2 flex-grow">{doc.filename}</p>
+                            <p className="font-bold text-foreground line-clamp-2 flex-grow">
+                              <Highlight text={doc.filename} term={searchTerm} />
+                            </p>
                             {showNewBadge && <Badge className="bg-blue-100 text-blue-800 border-transparent text-xs font-medium px-2 py-0.5 flex-shrink-0 mt-1 hover:bg-blue-100">New</Badge>}
                         </div>
                         <p className="text-sm text-muted-foreground">PDF Document</p>
