@@ -47,17 +47,17 @@
   }
 
   .dark {
-    --background: 222 47% 11%;
+    --background: 223 58% 8%;
     --foreground: 210 40% 98%;
-    --card: 220 30% 16%;
+    --card: 224 55% 10%;
     --card-foreground: 210 40% 98%;
-    --popover: 220 30% 16%;
+    --popover: 224 55% 10%;
     --popover-foreground: 210 40% 98%;
     --primary: 212 50% 55%;
     --primary-foreground: 210 20% 98%;
-    --secondary: 217 33% 17%;
+    --secondary: 224 40% 12%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 17%;
+    --muted: 224 40% 12%;
     --muted-foreground: 215 20% 65%;
     --accent: 45 65% 52%;
     --accent-foreground: 24 9.8% 10%;
@@ -76,7 +76,7 @@
     --chart-5: 27 87% 67%;
 
     /* Dark sidebar theme */
-    --sidebar-background: 222 44% 19%;
+    --sidebar-background: 223 45% 21%;
     --sidebar-foreground: 210 20% 95%;
     --sidebar-primary: 212 50% 55%;
     --sidebar-primary-foreground: 210 20% 98%;
