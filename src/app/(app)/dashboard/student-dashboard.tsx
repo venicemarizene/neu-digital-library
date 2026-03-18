@@ -1,77 +1,177 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { collection, addDoc, serverTimestamp, doc, updateDoc, increment, query, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc, increment, query, where, getDocs, orderBy, limit, getDoc as getFirestoreDoc } from 'firebase/firestore';
 import { useUser, useFirestore } from '@/firebase';
 import type { Document as DocumentType } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Download, Eye, Loader2, Sparkles } from 'lucide-react';
+import { FileText, Download, Eye, Loader2, History, ArrowDownToLine } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { personalizedDocumentRecommendations, PersonalizedDocumentRecommendationsOutput } from '@/ai/flows/personalized-document-recommendations';
+
+const RecentActivityCard = ({ title, description, icon, documents, loading, onDownload, onView, downloadingId, isBlocked }: { 
+    title: string;
+    description: string;
+    icon: React.ReactNode;
+    documents: DocumentType[];
+    loading: boolean;
+    onDownload: (doc: DocumentType) => void;
+    onView: (doc: DocumentType) => void;
+    downloadingId: string | null;
+    isBlocked: boolean;
+}) => {
+    
+    if (loading) {
+        return (
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-6 w-1/2" />
+                    <Skeleton className="h-4 w-3/4 mt-2" />
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {[...Array(2)].map((_, i) => (
+                         <div key={i} className="flex items-center gap-4 p-2">
+                            <Skeleton className="h-10 w-10 rounded-md" />
+                            <div className="space-y-2 flex-1">
+                                <Skeleton className="h-4 w-4/5" />
+                                <Skeleton className="h-3 w-1/4" />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Skeleton className="h-9 w-20" />
+                                <Skeleton className="h-9 w-24" />
+                            </div>
+                        </div>
+                    ))}
+                </CardContent>
+            </Card>
+        )
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    {icon}
+                    {title}
+                </CardTitle>
+                <CardDescription>{description}</CardDescription>
+            </CardHeader>
+            <CardContent>
+                 {documents.length > 0 ? (
+                    <div className="grid gap-4">
+                        {documents.map((doc) => (
+                            <Card key={doc.id} className="flex flex-col sm:flex-row items-start gap-4 p-4 transition-all hover:shadow-md">
+                                <div className="bg-primary/10 p-2 rounded-md mt-1">
+                                    <FileText className="h-6 w-6 flex-shrink-0 text-primary" />
+                                </div>
+                                <div className="flex-1">
+                                    <h4 className="font-bold text-base">{doc.filename}</h4>
+                                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{doc.category}</p>
+                                </div>
+                                <div className="flex items-center gap-2 mt-2 sm:mt-0 flex-shrink-0 self-start sm:self-center">
+                                    <Button variant="outline" size="sm" onClick={() => onView(doc)} disabled={isBlocked}>
+                                        <Eye className="mr-2 h-4 w-4" />
+                                        View
+                                    </Button>
+                                    <Button size="sm" onClick={() => onDownload(doc)} disabled={downloadingId === doc.id || isBlocked}>
+                                    {downloadingId === doc.id ? (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Download className="mr-2 h-4 w-4" />
+                                    )}
+                                    Download
+                                    </Button>
+                                </div>
+                            </Card>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="flex flex-col items-center justify-center rounded-lg bg-muted/50 py-10 text-center">
+                        <p className="text-sm text-muted-foreground">No recent activity.</p>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+};
+
 
 export default function StudentDashboard() {
-    const { appUser, user, isBlocked } = useUser();
+    const { user, isBlocked } = useUser();
     const db = useFirestore();
     const { toast } = useToast();
-    const [recommendations, setRecommendations] = useState<any[] | null>(null);
+    
+    const [viewedDocs, setViewedDocs] = useState<DocumentType[]>([]);
+    const [downloadedDocs, setDownloadedDocs] = useState<DocumentType[]>([]);
     const [loading, setLoading] = useState(true);
     const [downloading, setDownloading] = useState<string | null>(null);
 
     useEffect(() => {
-        const getRecommendations = async () => {
-            if (!appUser?.program || !user?.uid || !db) {
+        const fetchRecentActivity = async () => {
+            if (!user?.uid || !db) {
                 setLoading(false);
                 return;
             }
 
             setLoading(true);
             try {
-                // 1. Get AI recommendations
-                const result = await personalizedDocumentRecommendations({ undergraduateProgram: appUser.program });
-                
-                let recsWithDocs: any[] = [];
-                if (result.recommendations && result.recommendations.length > 0) {
-                    const recommendedTitles = result.recommendations.map(r => r.title);
+                // Generic function to fetch logs and associated documents
+                const fetchDocsByAction = async (action: 'view' | 'download'): Promise<DocumentType[]> => {
+                    const logsQuery = query(
+                        collection(db, "Logs"),
+                        where('userId', '==', user.uid),
+                        where('action', '==', action),
+                        orderBy('downloadedAt', 'desc'),
+                        limit(5)
+                    );
+                    const logsSnapshot = await getDocs(logsQuery);
                     
-                    // 2. Fetch all documents the student is allowed to see
-                    const studentDocsQuery = query(collection(db, "Documents"), where('allowedStudentIds', 'array-contains', user.uid));
-                    const docsSnapshot = await getDocs(studentDocsQuery);
-                    const allowedDocs = docsSnapshot.docs.map(d => ({id: d.id, ...d.data()}) as DocumentType);
+                    if (logsSnapshot.empty) return [];
                     
-                    // 3. Find the recommended docs within the allowed docs on the client
-                    const matchingDocs = allowedDocs.filter(d => recommendedTitles.includes(d.filename));
+                    // Get unique document IDs to avoid duplicate fetches and respect order
+                    const orderedUniqueDocIds: string[] = [];
+                    const seenIds = new Set<string>();
+                    logsSnapshot.docs.forEach(log => {
+                        const docId = log.data().documentId as string;
+                        if (!seenIds.has(docId)) {
+                            orderedUniqueDocIds.push(docId);
+                            seenIds.add(docId);
+                        }
+                    });
+
+                    if (orderedUniqueDocIds.length === 0) return [];
                     
-                    // 4. Map the AI description to the found Firestore documents
-                    recsWithDocs = result.recommendations
-                        .map(rec => {
-                            const matchingDoc = matchingDocs.find(d => d.filename === rec.title);
-                            if (matchingDoc) {
-                                return {
-                                    ...rec, // contains title and description from AI
-                                    doc: matchingDoc // contains the full firestore document
-                                };
-                            }
-                            return null;
-                        })
-                        .filter(Boolean) as any[];
-                }
-                setRecommendations(recsWithDocs);
+                    const docPromises = orderedUniqueDocIds.map(id => getFirestoreDoc(doc(db, "Documents", id)));
+                    const docSnapshots = await Promise.all(docPromises);
+                    
+                    // Return docs that exist, in the order they were fetched
+                    return docSnapshots
+                        .filter(snap => snap.exists())
+                        .map(snap => ({ id: snap.id, ...snap.data() } as DocumentType));
+                };
+
+                const [recentViews, recentDownloads] = await Promise.all([
+                    fetchDocsByAction('view'),
+                    fetchDocsByAction('download')
+                ]);
+
+                setViewedDocs(recentViews);
+                setDownloadedDocs(recentDownloads);
 
             } catch (error) {
-                console.error("Error getting AI recommendations:", error);
-                setRecommendations([]); // Set to empty array on error
+                console.error("Error fetching recent activity:", error);
+                // Fail silently, the UI will just show "no recent activity"
             } finally {
                 setLoading(false);
             }
         };
 
-        if (appUser && user?.uid) {
-            getRecommendations();
-        } else {
+        if (user?.uid && db) {
+            fetchRecentActivity();
+        } else if (!user?.uid) {
             setLoading(false);
         }
-    }, [appUser?.program, user?.uid]);
+    }, [user?.uid, db]);
     
     const handleView = async (doc: DocumentType) => {
         if (isBlocked) {
@@ -139,101 +239,30 @@ export default function StudentDashboard() {
         }
     };
     
-    const renderSkeleton = () => (
-        <Card>
-            <CardHeader>
-                <Skeleton className="h-6 w-1/3" />
-                <Skeleton className="h-4 w-2/3 mt-2" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-                {[...Array(3)].map((_, i) => (
-                    <div key={i} className="flex items-start gap-4 p-4 border rounded-lg">
-                        <Skeleton className="h-8 w-8 mt-1 rounded-md" />
-                        <div className="space-y-2 flex-1">
-                            <Skeleton className="h-5 w-3/4" />
-                            <Skeleton className="h-4 w-full" />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Skeleton className="h-9 w-20" />
-                            <Skeleton className="h-9 w-24" />
-                        </div>
-                    </div>
-                ))}
-            </CardContent>
-        </Card>
-    );
-
-    if (loading) {
-        return renderSkeleton();
-    }
-    
-    if (!appUser?.program) {
-         return (
-             <div className="flex flex-col items-center justify-center rounded-lg bg-card py-24 text-center shadow-md">
-                <Sparkles className="h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-semibold">AI Recommendations</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                   Select your program in your profile to get personalized document recommendations.
-                </p>
-                <Button onClick={() => window.location.href = '/profile'} className="mt-4">Go to Profile</Button>
-            </div>
-        )
-    }
-
-    if (!recommendations || recommendations.length === 0) {
-        return (
-             <div className="flex flex-col items-center justify-center rounded-lg bg-card py-24 text-center shadow-md">
-              <Sparkles className="h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-4 text-lg font-semibold">No Recommendations For You</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                We couldn't find any specific document recommendations for your program right now.
-              </p>
-            </div>
-        )
-    }
-
     return (
         <div className="space-y-6">
-           <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Sparkles className="h-6 w-6 text-primary" />
-                        Recommended For You
-                    </CardTitle>
-                    <CardDescription>Based on your program, here are some documents you might find helpful to get started.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid gap-4">
-                        {recommendations.map((rec) => (
-                            rec.doc ? (
-                                <Card key={rec.doc.id} className="flex flex-col sm:flex-row items-start gap-4 p-4 transition-all hover:shadow-md">
-                                    <div className="bg-primary/10 p-2 rounded-md mt-1">
-                                        <FileText className="h-6 w-6 flex-shrink-0 text-primary" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h4 className="font-bold text-base">{rec.doc.filename}</h4>
-                                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{rec.description}</p>
-                                    </div>
-                                    <div className="flex items-center gap-2 mt-2 sm:mt-0 flex-shrink-0 self-start sm:self-center">
-                                        <Button variant="outline" size="sm" onClick={() => handleView(rec.doc)} disabled={isBlocked}>
-                                            <Eye className="mr-2 h-4 w-4" />
-                                            View
-                                        </Button>
-                                        <Button size="sm" onClick={() => handleDownload(rec.doc)} disabled={downloading === rec.doc.id || isBlocked}>
-                                        {downloading === rec.doc.id ? (
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        ) : (
-                                            <Download className="mr-2 h-4 w-4" />
-                                        )}
-                                        Download
-                                        </Button>
-                                    </div>
-                                </Card>
-                            ) : null
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
+            <RecentActivityCard
+                title="Recently Viewed"
+                description="Documents you've recently opened."
+                icon={<History className="h-6 w-6 text-primary" />}
+                documents={viewedDocs}
+                loading={loading}
+                onView={handleView}
+                onDownload={handleDownload}
+                downloadingId={downloading}
+                isBlocked={isBlocked ?? false}
+            />
+            <RecentActivityCard
+                title="Recently Downloaded"
+                description="Documents you've recently saved."
+                icon={<ArrowDownToLine className="h-6 w-6 text-primary" />}
+                documents={downloadedDocs}
+                loading={loading}
+                onView={handleView}
+                onDownload={handleDownload}
+                downloadingId={downloading}
+                isBlocked={isBlocked ?? false}
+            />
         </div>
     );
 }

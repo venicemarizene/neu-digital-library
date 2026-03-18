@@ -27,8 +27,9 @@ service cloud.firestore {
     
     match /Logs/{logId} {
       allow create: if request.auth.uid == request.resource.data.userId;
-      // Only admins can read logs.
-      allow read: if isRequestingUserAdmin();
+      // Admins can read all logs. Students can read their own logs (get and query).
+      // For queries (list), the query MUST include `where('userId', '==', request.auth.uid)`.
+      allow read: if isRequestingUserAdmin() || request.auth.uid == resource.data.userId;
     }
   }
 }
