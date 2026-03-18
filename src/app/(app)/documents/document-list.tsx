@@ -72,32 +72,30 @@ export default function DocumentList() {
     const fetchDocs = async () => {
       try {
         setDocsLoading(true);
-
-        // Query 1: Documents visible to ALL CICS students that are not archived
+    
+        // ✅ No isArchived filter in the query at all
         const allCicsQuery = query(
           collection(db, 'Documents'),
-          where('visibility', '==', 'ALL_CICS'),
-          where('isArchived', '==', false)
+          where('visibility', '==', 'ALL_CICS')
         );
-
-        // Query 2: Documents specific to the student's program that are not archived
+    
         const programQuery = query(
           collection(db, 'Documents'),
           where('visibility', '==', 'PROGRAM_SPECIFIC'),
-          where('targetProgram', '==', appUser.program),
-          where('isArchived', '==', false)
+          where('targetProgram', '==', appUser.program)
         );
-
+    
         const [allCicsSnap, programSnap] = await Promise.all([
           getDocs(allCicsQuery),
           getDocs(programQuery),
         ]);
-
+    
+        // ✅ Filter archived documents client-side after fetching
         const merged: DocumentType[] = [
           ...allCicsSnap.docs.map(d => ({ id: d.id, ...d.data() } as DocumentType)),
           ...programSnap.docs.map(d => ({ id: d.id, ...d.data() } as DocumentType)),
-        ];
-
+        ].filter(doc => doc.isArchived !== true);
+    
         setAllDocuments(merged);
       } catch (err: any) {
         console.error('Error fetching documents:', err);

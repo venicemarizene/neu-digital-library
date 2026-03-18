@@ -70,7 +70,7 @@ export default function StudentTable() {
 
   const sectionOptions = useMemo(() => {
     if (!users) return [];
-    const sections = [...new Set(users.map(u => u.section).filter(Boolean))];
+    const sections = [...new Set(users.map(u => u.section).filter(Boolean) as string[])];
     sections.sort();
     return ['All Sections', ...sections];
   }, [users]);
@@ -123,7 +123,7 @@ export default function StudentTable() {
               ))}
             </SelectContent>
           </Select>
-           <Select value={sectionFilter} onValueChange={setSectionFilter}>
+           <Select value={sectionFilter} onValueChange={setSectionFilter} disabled={sectionOptions.length <= 1}>
             <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder="Filter by section..." />
             </SelectTrigger>
@@ -167,7 +167,7 @@ export default function StudentTable() {
                       </div>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">{user.program?.match(/\(([^)]+)\)/)?.[1] || user.program}</TableCell>
-                    <TableCell className="hidden md:table-cell">{user.section}</TableCell>
+                    <TableCell className="hidden md:table-cell">{user.section || 'N/A'}</TableCell>
                     <TableCell className="hidden md:table-cell">
                       <Badge variant={user.isBlocked ? 'destructive' : 'secondary'}>
                         {user.isBlocked ? 'Blocked' : 'Active'}
