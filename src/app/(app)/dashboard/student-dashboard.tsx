@@ -20,11 +20,12 @@ export default function StudentDashboard() {
 
     useEffect(() => {
         const getRecommendations = async () => {
-            if (!appUser?.program || !user || !db) {
+            if (!appUser?.program || !user?.uid || !db) {
                 setLoading(false);
                 return;
             }
 
+            setLoading(true);
             try {
                 // 1. Get AI recommendations
                 const result = await personalizedDocumentRecommendations({ undergraduateProgram: appUser.program });
@@ -65,12 +66,12 @@ export default function StudentDashboard() {
             }
         };
 
-        if (appUser) {
+        if (appUser && user?.uid) {
             getRecommendations();
-        } else if (!user) {
+        } else {
             setLoading(false);
         }
-    }, [appUser?.program, user, db]);
+    }, [appUser?.program, user?.uid, db]);
     
     const handleView = async (doc: DocumentType) => {
         if (isBlocked) {
