@@ -8,6 +8,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
+  SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { usePathname, useRouter } from 'next/navigation';
 import { LibraryBig, User, LogOut, LayoutDashboard } from 'lucide-react';
@@ -72,6 +73,7 @@ export function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
+      <SidebarSeparator />
       <SidebarFooter className="flex-col !items-start gap-4">
         {loading ? (
            <div className="flex w-full items-center gap-3 px-2">
