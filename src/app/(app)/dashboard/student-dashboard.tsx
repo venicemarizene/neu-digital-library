@@ -70,7 +70,7 @@ export default function StudentDashboard() {
         } else if (!user) {
             setLoading(false);
         }
-    }, [appUser, user, db]);
+    }, [appUser?.program, user, db]);
     
     const handleView = async (doc: DocumentType) => {
         if (isBlocked) {
