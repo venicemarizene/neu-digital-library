@@ -132,8 +132,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#fdfbf5] dark:bg-[#242f3f]">
-        <header className="bg-background dark:bg-[#1a2535] text-foreground p-4 flex justify-between items-center border-b border-border shadow-md dark:shadow-[0_1px_4px_rgba(0,0,0,0.08)]">
+    <div className="flex min-h-screen flex-col bg-background dark:bg-background">
+        <header className="bg-secondary dark:bg-sidebar/70 text-foreground p-4 flex justify-between items-center border-b border-border shadow-md dark:shadow-[0_1px_4px_rgba(0,0,0,0.08)]">
             <div className="flex items-center gap-3">
                  <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full overflow-hidden bg-white">
                     <Image
@@ -144,7 +144,7 @@ export default function LoginPage() {
                         className="object-cover w-full h-full"
                     />
                 </div>
-                <span className="text-xl font-semibold text-[#c9a84c] dark:text-primary font-playfair">New Era University</span>
+                <span className="text-xl font-semibold text-[#a8872a] dark:text-primary font-playfair">New Era University</span>
             </div>
             <div className="flex items-center gap-4">
                 <ThemeToggle />
@@ -197,7 +197,7 @@ export default function LoginPage() {
             </Card>
         </main>
         
-        <footer className="bg-background dark:bg-[#1a2535] text-muted-foreground p-4 text-center text-xs border-t border-border shadow-[0_-2px_6px_rgba(0,0,0,0.08)]">
+        <footer className="bg-secondary dark:bg-sidebar/70 text-muted-foreground p-4 text-center text-xs border-t border-border shadow-[0_-2px_6px_rgba(0,0,0,0.08)]">
             <div className="flex flex-wrap justify-center items-center gap-x-4 gap-y-1">
                 <span>© 2026 New Era University</span>
                 <span className="hidden sm:inline text-muted-foreground/50">•</span>
