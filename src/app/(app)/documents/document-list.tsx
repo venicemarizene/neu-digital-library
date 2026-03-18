@@ -14,6 +14,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const categories = ['All', 'Curriculum', 'Manual', 'Form', 'Guide'];
 type SortOption = 'uploadedAt' | 'filename';
@@ -63,52 +65,49 @@ useEffect(() => {
 }, [user, db]);
 
 useEffect(() => {
-  if (!user || !appUser?.program || !db) return;
+  if (!user || !db) {
+    setDocsLoading(false);
+    return;
+  };
 
   const fetchDocs = async () => {
     try {
       setDocsLoading(true);
 
-      // Query 1: Documents visible to ALL CICS students
-      const allCicsQuery = query(
+      const docsQuery = query(
         collection(db, 'Documents'),
-        where('visibility', '==', 'ALL_CICS')
+        where('allowedStudentIds', 'array-contains', user.uid),
+        where('isArchived', '==', false)
       );
+      
+      const querySnapshot = await getDocs(docsQuery);
 
-      // Query 2: Documents specific to the student's program
-      const programQuery = query(
-        collection(db, 'Documents'),
-        where('visibility', '==', 'PROGRAM_SPECIFIC'),
-        where('targetProgram', '==', appUser.program) // exact match to user's program string
-      );
-
-      const [allCicsSnap, programSnap] = await Promise.all([
-        getDocs(allCicsQuery),
-        getDocs(programQuery)
-      ]);
-
-      const merged: DocumentType[] = [
-        ...allCicsSnap.docs.map(d => ({ id: d.id, ...d.data() } as DocumentType)),
-        ...programSnap.docs.map(d => ({ id: d.id, ...d.data() } as DocumentType)),
-      ];
-
-      setAllDocuments(merged);
-    } catch (err) {
+      const docs = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() } as DocumentType));
+      
+      setAllDocuments(docs);
+    } catch (err: any) {
       console.error('Error fetching documents:', err);
+      if (err.code === 'permission-denied') {
+          const permissionError = new FirestorePermissionError({
+              path: 'Documents',
+              operation: 'list',
+          });
+          errorEmitter.emit('permission-error', permissionError);
+      }
     } finally {
       setDocsLoading(false);
     }
   };
 
   fetchDocs();
-}, [user, appUser?.program, db]);
+}, [user, db]);
   
   const loading = userLoading || docsLoading || logsLoading;
   
   const filteredDocuments = useMemo(() => {
     if (!allDocuments) return [];
 
-    // Filter out archived documents first
+    // Filter out archived documents first - This is now redundant due to query but safe to keep
     let docs = allDocuments.filter(doc => !doc.isArchived);
   
     // Client-side sorting
