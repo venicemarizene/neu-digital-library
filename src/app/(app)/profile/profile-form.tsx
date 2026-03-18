@@ -15,6 +15,7 @@ import {
 
 const profileSchema = z.object({
   program: z.string(),
+  section: z.string(),
 });
 
 export function ProfileForm({ user }: { user: AppUser }) {
@@ -22,6 +23,7 @@ export function ProfileForm({ user }: { user: AppUser }) {
     resolver: zodResolver(profileSchema),
     defaultValues: {
       program: user.program || 'Not set',
+      section: user.section || 'Not set',
     },
   });
 
@@ -42,20 +44,36 @@ export function ProfileForm({ user }: { user: AppUser }) {
             </FormControl>
           </FormItem>
         </div>
-        <FormField
-          control={form.control}
-          name="program"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Program</FormLabel>
-                <FormControl>
-                    <div className="flex min-h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm opacity-50 cursor-not-allowed">
-                        <p className="break-words">{field.value}</p>
-                    </div>
-                </FormControl>
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField
+            control={form.control}
+            name="program"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Program</FormLabel>
+                    <FormControl>
+                        <div className="flex min-h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm opacity-50 cursor-not-allowed">
+                            <p className="break-words">{field.value}</p>
+                        </div>
+                    </FormControl>
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={form.control}
+            name="section"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Section</FormLabel>
+                    <FormControl>
+                        <div className="flex min-h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm opacity-50 cursor-not-allowed">
+                            <p className="break-words">{field.value}</p>
+                        </div>
+                    </FormControl>
+                </FormItem>
+            )}
+            />
+        </div>
       </form>
     </Form>
   );

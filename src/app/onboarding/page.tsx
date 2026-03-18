@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -29,6 +30,7 @@ export default function OnboardingPage() {
   const db = useFirestore();
   const router = useRouter();
   const [program, setProgram] = useState('');
+  const [section, setSection] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -48,6 +50,10 @@ export default function OnboardingPage() {
       toast({ variant: 'destructive', title: 'Error', description: 'Please select your program.' });
       return;
     }
+    if (!section.trim()) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Please enter your section.' });
+        return;
+    }
 
     setIsSubmitting(true);
     const userDocRef = doc(db, 'Users', user.uid);
@@ -57,6 +63,7 @@ export default function OnboardingPage() {
       displayName: user.displayName,
       photoURL: user.photoURL,
       program: program,
+      section: section.trim(),
       isAdmin: user.email === ADMIN_EMAIL,
       isBlocked: false,
       onboardingComplete: true,
@@ -104,7 +111,7 @@ export default function OnboardingPage() {
       <Card className="w-full max-w-lg shadow-xl">
         <CardHeader>
           <CardTitle className="font-headline text-2xl">Welcome to CICS!</CardTitle>
-          <CardDescription>To personalize your experience, please select your undergraduate program.</CardDescription>
+          <CardDescription>To personalize your experience, please select your undergraduate program and enter your section.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
@@ -116,7 +123,16 @@ export default function OnboardingPage() {
                   </div>
                 ))}
             </RadioGroup>
-            <Button onClick={handleSubmit} disabled={isSubmitting || !program} className="w-full">
+            <div className="space-y-2">
+                <Label htmlFor="section" className="font-medium">Section</Label>
+                <Input 
+                    id="section" 
+                    placeholder="e.g., 1BSCS1"
+                    value={section}
+                    onChange={(e) => setSection(e.target.value)}
+                />
+            </div>
+            <Button onClick={handleSubmit} disabled={isSubmitting || !program || !section.trim()} className="w-full">
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {isSubmitting ? 'Saving...' : 'Complete Profile'}
             </Button>
