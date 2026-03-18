@@ -71,7 +71,7 @@ export default function StudentDashboard() {
         } else {
             setLoading(false);
         }
-    }, [appUser?.program, user?.uid, db]);
+    }, [appUser?.program, user?.uid]);
     
     const handleView = async (doc: DocumentType) => {
         if (isBlocked) {
