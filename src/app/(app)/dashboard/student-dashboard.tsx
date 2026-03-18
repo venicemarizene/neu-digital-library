@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { collection, addDoc, serverTimestamp, doc, updateDoc, increment, query, where, getDocs, orderBy, limit, getDoc as getFirestoreDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc, increment, query, where, getDocs, getDoc as getFirestoreDoc } from 'firebase/firestore';
 import { useUser, useFirestore } from '@/firebase';
 import type { Document as DocumentType } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -120,34 +120,53 @@ export default function StudentDashboard() {
                     const logsQuery = query(
                         collection(db, "Logs"),
                         where('userId', '==', user.uid),
-                        where('action', '==', action),
-                        orderBy('downloadedAt', 'desc'),
-                        limit(5)
+                        where('action', '==', action)
+                        // Note: orderBy and limit are removed to prevent needing a composite index,
+                        // which can cause permission errors if not configured.
+                        // Sorting and limiting are now handled on the client.
                     );
                     const logsSnapshot = await getDocs(logsQuery);
                     
                     if (logsSnapshot.empty) return [];
                     
-                    // Get unique document IDs to avoid duplicate fetches and respect order
+                    // Sort logs on the client to find the most recent
+                    const sortedLogs = logsSnapshot.docs
+                        .map(d => d.data())
+                        .sort((a, b) => {
+                            const timeA = a.downloadedAt?.toMillis() || 0;
+                            const timeB = b.downloadedAt?.toMillis() || 0;
+                            return timeB - timeA;
+                        });
+
+                    // Get up to 5 unique document IDs from the sorted logs
                     const orderedUniqueDocIds: string[] = [];
                     const seenIds = new Set<string>();
-                    logsSnapshot.docs.forEach(log => {
-                        const docId = log.data().documentId as string;
+                    for (const log of sortedLogs) {
+                        const docId = log.documentId as string;
                         if (!seenIds.has(docId)) {
                             orderedUniqueDocIds.push(docId);
                             seenIds.add(docId);
                         }
-                    });
+                        if (orderedUniqueDocIds.length >= 5) break;
+                    }
+
 
                     if (orderedUniqueDocIds.length === 0) return [];
                     
                     const docPromises = orderedUniqueDocIds.map(id => getFirestoreDoc(doc(db, "Documents", id)));
                     const docSnapshots = await Promise.all(docPromises);
                     
-                    // Return docs that exist, in the order they were fetched
-                    return docSnapshots
-                        .filter(snap => snap.exists())
-                        .map(snap => ({ id: snap.id, ...snap.data() } as DocumentType));
+                    const docsById = new Map<string, DocumentType>();
+                    docSnapshots.forEach(snap => {
+                        if (snap.exists()) {
+                            docsById.set(snap.id, { id: snap.id, ...snap.data() } as DocumentType);
+                        }
+                    });
+
+                    // Return docs in the correct, recent order by mapping over the ordered ID list
+                    return orderedUniqueDocIds
+                        .map(id => docsById.get(id))
+                        .filter((doc): doc is DocumentType => doc !== undefined);
                 };
 
                 const [recentViews, recentDownloads] = await Promise.all([
