@@ -173,37 +173,51 @@ useEffect(() => {
   };
 
   const renderGrid = (docs: DocumentType[]) => (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-      {docs.map((doc) => (
-        <Card key={doc.id} className="flex flex-col transition-all hover:shadow-lg rounded-lg">
-          <CardHeader>
-            <div className="flex items-start gap-4">
-              <div className="bg-primary/10 p-2 rounded-md">
-                <FileText className="h-6 w-6 flex-shrink-0 text-primary" />
+    <TooltipProvider delayDuration={100}>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+        {docs.map((doc) => (
+          <Tooltip key={doc.id}>
+            <TooltipTrigger asChild>
+              <Card className="flex flex-col transition-all hover:shadow-lg rounded-lg">
+                <CardHeader>
+                  <div className="flex items-start gap-4">
+                    <div className="bg-primary/10 p-2 rounded-md">
+                      <FileText className="h-6 w-6 flex-shrink-0 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="line-clamp-2 text-base font-headline">{doc.filename}</CardTitle>
+                      <CardDescription>{doc.category}</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardFooter className="flex items-center gap-2 mt-auto">
+                      <Button variant="outline" size="sm" onClick={() => handleView(doc as DocumentType)} disabled={isBlocked}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          View
+                      </Button>
+                      <Button size="sm" onClick={() => handleDownload(doc as DocumentType)} disabled={downloading === doc.id || isBlocked}>
+                        {downloading === doc.id ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Download className="mr-2 h-4 w-4" />
+                        )}
+                        {downloading === doc.id ? 'Downloading' : 'Download'}
+                      </Button>
+                </CardFooter>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" align="center" className="max-w-xs">
+              <div className="space-y-1.5 p-2 text-left">
+                <p className="font-semibold text-sm">{doc.description || 'No description available.'}</p>
+                <p className="text-xs text-muted-foreground">
+                    Uploaded: {doc.uploadedAt ? format(doc.uploadedAt.toDate(), 'PPP') : 'N/A'}
+                </p>
               </div>
-              <div>
-                <CardTitle className="line-clamp-2 text-base font-headline">{doc.filename}</CardTitle>
-                <CardDescription>{doc.category}</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardFooter className="flex items-center gap-2 mt-auto">
-                <Button variant="outline" size="sm" onClick={() => handleView(doc as DocumentType)} disabled={isBlocked}>
-                    <Eye className="mr-2 h-4 w-4" />
-                    View
-                </Button>
-                <Button size="sm" onClick={() => handleDownload(doc as DocumentType)} disabled={downloading === doc.id || isBlocked}>
-                  {downloading === doc.id ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="mr-2 h-4 w-4" />
-                  )}
-                  {downloading === doc.id ? 'Downloading' : 'Download'}
-                </Button>
-          </CardFooter>
-        </Card>
-      ))}
-    </div>
+            </TooltipContent>
+          </Tooltip>
+        ))}
+      </div>
+    </TooltipProvider>
   );
 
   const renderList = (docs: DocumentType[]) => (
@@ -237,7 +251,7 @@ useEffect(() => {
                 </Badge>
               </div>
               <p className="text-muted-foreground text-sm">
-                {doc.uploadedAt ? format(doc.uploadedAt.toDate(), 'MMM d, yyyy') : 'N/A'}
+                {doc.uploadedAt ? format(doc.uploadedAt.toDate(), 'PPP') : 'N/A'}
               </p>
               <div className="flex justify-end">
                 <TooltipProvider>
@@ -317,7 +331,7 @@ useEffect(() => {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-card-foreground">Uploaded:</span>
-                  <span>{doc.uploadedAt ? format(doc.uploadedAt.toDate(), 'MMM d, yyyy') : 'N/A'}</span>
+                  <span>{doc.uploadedAt ? format(doc.uploadedAt.toDate(), 'PPP') : 'N/A'}</span>
                 </div>
               </div>
             </div>
