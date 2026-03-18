@@ -133,7 +133,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-        <header className="bg-background text-foreground p-4 flex justify-between items-center border-b border-border">
+        <header className="bg-secondary text-foreground p-4 flex justify-between items-center border-b border-border shadow-md">
             <div className="flex items-center gap-3">
                  <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full overflow-hidden bg-white">
                     <Image
@@ -144,14 +144,14 @@ export default function LoginPage() {
                         className="object-cover w-full h-full"
                     />
                 </div>
-                <span className="text-xl font-semibold text-accent">New Era University</span>
+                <span className="text-xl font-semibold text-accent font-playfair">New Era University</span>
             </div>
             <div className="flex items-center gap-4">
                 <div className="flex flex-row items-baseline gap-1.5">
-                    <span className="font-headline text-2xl font-bold leading-none tracking-tighter">
+                    <span className="font-headline text-2xl font-bold leading-none tracking-tighter text-accent">
                         CICS
                     </span>
-                    <span className="font-headline text-xl font-semibold leading-none">
+                    <span className="font-headline text-xl font-semibold leading-none text-primary">
                         DocHub
                     </span>
                 </div>
@@ -174,18 +174,18 @@ export default function LoginPage() {
                         </div>
                         <h1 className="text-2xl font-bold tracking-tight">
                             <span className="text-accent">CICS</span>
-                            <span className="text-foreground"> DocHub</span>
+                            <span className="text-primary"> DocHub</span>
                         </h1>
                         <p className="text-muted-foreground text-sm">Digital Library for CICS Students & Faculty</p>
                     </div>
 
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                        <TabsList className="grid w-full grid-cols-2 h-12 rounded-xl">
-                            <TabsTrigger value="student" className="h-full text-base gap-2">
+                        <TabsList className="grid w-full grid-cols-2 h-12 rounded-lg">
+                            <TabsTrigger value="student" className="h-full text-base gap-2 data-[state=inactive]:dark:text-muted-foreground">
                                 <User className="h-5 w-5" />
                                 Student
                             </TabsTrigger>
-                            <TabsTrigger value="admin" className="h-full text-base gap-2">
+                            <TabsTrigger value="admin" className="h-full text-base gap-2 data-[state=inactive]:dark:text-muted-foreground">
                                 <ShieldCheck className="h-5 w-5" />
                                 Admin
                             </TabsTrigger>
@@ -205,7 +205,7 @@ export default function LoginPage() {
             </Card>
         </main>
         
-        <footer className="bg-background text-muted-foreground p-4 text-center text-xs border-t border-border">
+        <footer className="bg-secondary text-muted-foreground p-4 text-center text-xs border-t border-border shadow-[0_-2px_6px_rgba(0,0,0,0.06)]">
             <div className="flex flex-wrap justify-center items-center gap-x-4 gap-y-1">
                 <span>© 2026 New Era University</span>
                 <span className="hidden sm:inline text-muted-foreground/50">•</span>
