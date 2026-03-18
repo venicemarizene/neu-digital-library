@@ -34,7 +34,7 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     if (!loading && isProfileComplete) {
-      router.push('/documents');
+      router.push('/dashboard');
     }
   }, [loading, isProfileComplete, router]);
 
