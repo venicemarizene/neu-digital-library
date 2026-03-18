@@ -108,8 +108,8 @@ useEffect(() => {
   const filteredDocuments = useMemo(() => {
     if (!allDocuments) return [];
 
-    // Create a mutable copy to sort
-    let docs = [...allDocuments];
+    // Filter out archived documents first
+    let docs = allDocuments.filter(doc => !doc.isArchived);
   
     // Client-side sorting
     docs.sort((a, b) => {

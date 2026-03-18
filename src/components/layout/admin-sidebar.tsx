@@ -11,7 +11,7 @@ import {
   SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { usePathname, useRouter } from 'next/navigation';
-import { Users, File, BarChart3, LogOut } from 'lucide-react';
+import { Users, File, BarChart3, LogOut, Archive } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { useAuth, useUser } from '@/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -69,6 +69,16 @@ export function AdminSidebar() {
             >
               <File />
               <span className='ml-2'>Documents</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton
+              isActive={pathname === '/admin/archive'}
+              onClick={() => router.push('/admin/archive')}
+              tooltip="Archive"
+            >
+              <Archive />
+              <span className='ml-2'>Archive</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

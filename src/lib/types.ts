@@ -25,6 +25,7 @@ export interface Document {
   description?: string;
   storagePath?: string;
   downloads: number;
+  isArchived?: boolean;
 }
 
 export interface DownloadLog {

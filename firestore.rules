@@ -13,9 +13,9 @@ service cloud.firestore {
       allow read, write: if request.auth.uid == userId || isRequestingUserAdmin();
     }
 
-    // Admins can read any document. Students can read documents if their UID is in the `allowedStudentIds` list.
+    // Admins can read any document. Students can read documents if they are not archived and their UID is in the `allowedStudentIds` list.
     match /Documents/{documentId} {
-      allow read: if isRequestingUserAdmin() || (request.auth.uid in resource.data.get('allowedStudentIds', []));
+      allow read: if isRequestingUserAdmin() || (resource.data.isArchived != true && (request.auth.uid in resource.data.get('allowedStudentIds', [])));
       allow create, delete: if isRequestingUserAdmin();
       // Allow any authenticated user to increment the 'downloads' count.
       // Admins can update any field.

@@ -18,7 +18,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Trash2, Upload, FileText, Globe, Users, Eye, Download, Search } from 'lucide-react';
+import { Loader2, Trash2, Upload, FileText, Globe, Users, Eye, Download, Search, Archive } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -104,7 +104,7 @@ export default function DocumentManager() {
   const loading = userLoading || docsLoading;
 
   const filteredDocuments = useMemo(() => {
-    let docs = firestoreDocs || [];
+    let docs = firestoreDocs?.filter(doc => !doc.isArchived) || [];
 
     if (activeCategory !== 'All') {
         docs = docs.filter(doc => doc.category === activeCategory);
@@ -208,7 +208,8 @@ export default function DocumentManager() {
             visibility: values.visibility,
             targetProgram: values.visibility === 'PROGRAM_SPECIFIC' ? values.targetProgram : null,
             downloads: 0,
-            allowedStudentIds: allowedStudentIds
+            allowedStudentIds: allowedStudentIds,
+            isArchived: false,
         };
 
         const documentsCollection = collection(db, 'Documents');
@@ -345,6 +346,37 @@ export default function DocumentManager() {
           description: error.message || 'Could not delete document record.' 
         });
       }
+    }
+  };
+
+  const handleArchive = async (docToArchive: DocumentType) => {
+    if (!db) {
+        toast({ variant: 'destructive', title: 'Database not available.' });
+        return;
+    }
+
+    const docRef = firestoreDoc(db, 'Documents', docToArchive.id);
+    const updateData = { isArchived: true };
+
+    try {
+        await updateDoc(docRef, updateData);
+        toast({ title: 'Success', description: `"${docToArchive.filename}" has been archived.` });
+    } catch (error: any) {
+        if (error.name === 'FirebaseError' && error.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: docRef.path,
+                operation: 'update',
+                requestResourceData: updateData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
+            console.error("Error archiving document:", error);
+            toast({ 
+                variant: 'destructive', 
+                title: 'Archive Failed', 
+                description: error.message || 'Could not archive document.' 
+            });
+        }
     }
   };
 
@@ -620,37 +652,48 @@ export default function DocumentManager() {
                                             </Tooltip>
                                         </div>
                                         
-                                        <AlertDialog>
+                                        <div className="flex items-center gap-2">
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
-                                                    <AlertDialogTrigger asChild>
-                                                        <Button size="icon" variant="outline" className="text-red-500 border border-red-200 hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-all duration-200">
-                                                            <Trash2 className="h-4 w-4" />
-                                                            <span className="sr-only">Delete</span>
-                                                        </Button>
-                                                    </AlertDialogTrigger>
+                                                    <Button size="icon" variant="outline" onClick={() => handleArchive(doc)}>
+                                                        <Archive className="h-4 w-4" />
+                                                        <span className="sr-only">Archive</span>
+                                                    </Button>
                                                 </TooltipTrigger>
-                                                <TooltipContent><p>Delete</p></TooltipContent>
+                                                <TooltipContent><p>Archive</p></TooltipContent>
                                             </Tooltip>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    This action cannot be undone. This will permanently delete the document
-                                                    "{doc.filename}" from storage and records.
-                                                </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                <AlertDialogAction
-                                                    onClick={() => handleDelete(doc)}
-                                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                                >
-                                                    Delete
-                                                </AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
+                                            <AlertDialog>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <AlertDialogTrigger asChild>
+                                                            <Button size="icon" variant="outline" className="text-red-500 border border-red-200 hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-all duration-200">
+                                                                <Trash2 className="h-4 w-4" />
+                                                                <span className="sr-only">Delete</span>
+                                                            </Button>
+                                                        </AlertDialogTrigger>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent><p>Delete</p></TooltipContent>
+                                                </Tooltip>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        This action cannot be undone. This will permanently delete the document
+                                                        "{doc.filename}" from storage and records.
+                                                    </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction
+                                                        onClick={() => handleDelete(doc)}
+                                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                    >
+                                                        Delete
+                                                    </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </div>
                                     </div>
                                 </TooltipProvider>
                             </CardFooter>
