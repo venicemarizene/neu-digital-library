@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { collection, addDoc, serverTimestamp, doc, updateDoc, increment, query, where, getDocs, getFirestoreDoc, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc, increment, query, where, getDocs, getDoc, Timestamp } from 'firebase/firestore';
 import { useUser, useFirestore } from '@/firebase';
 import type { Document as DocumentType } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -169,7 +169,7 @@ export default function StudentDashboard() {
                     if (latestLogs.length === 0) return [];
 
                     const docIds = latestLogs.map(log => log.documentId);
-                    const docPromises = docIds.map(id => getFirestoreDoc(doc(db, "Documents", id)));
+                    const docPromises = docIds.map(id => getDoc(doc(db, "Documents", id)));
                     const docSnapshots = await Promise.all(docPromises);
                     
                     const docsById = new Map<string, DocumentType>();
