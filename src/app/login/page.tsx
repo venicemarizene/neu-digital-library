@@ -133,7 +133,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-        <header className="bg-amber-50 dark:bg-secondary text-foreground p-4 flex justify-between items-center border-b border-border shadow-md">
+        <header className="bg-amber-50 dark:bg-background text-foreground p-4 flex justify-between items-center border-b border-border shadow-md">
             <div className="flex items-center gap-3">
                  <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full overflow-hidden bg-white">
                     <Image
@@ -205,7 +205,7 @@ export default function LoginPage() {
             </Card>
         </main>
         
-        <footer className="bg-amber-50 dark:bg-secondary text-muted-foreground p-4 text-center text-xs border-t border-border shadow-[0_-2px_6px_rgba(0,0,0,0.06)]">
+        <footer className="bg-amber-50 dark:bg-background text-muted-foreground p-4 text-center text-xs border-t border-border shadow-[0_-2px_6px_rgba(0,0,0,0.06)]">
             <div className="flex flex-wrap justify-center items-center gap-x-4 gap-y-1">
                 <span>© 2026 New Era University</span>
                 <span className="hidden sm:inline text-muted-foreground/50">•</span>
