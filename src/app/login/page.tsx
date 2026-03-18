@@ -133,7 +133,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-        <header className="bg-amber-50 dark:bg-[#1e2a3a] text-foreground p-4 flex justify-between items-center border-b border-border shadow-md">
+        <header className="bg-amber-50 dark:bg-[#1a2535] text-foreground p-4 flex justify-between items-center border-b border-border shadow-md">
             <div className="flex items-center gap-3">
                  <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full overflow-hidden bg-white">
                     <Image
@@ -147,14 +147,6 @@ export default function LoginPage() {
                 <span className="text-xl font-semibold text-accent font-playfair">New Era University</span>
             </div>
             <div className="flex items-center gap-4">
-                <div className="flex flex-row items-baseline gap-1.5">
-                    <span className="font-headline text-2xl font-bold leading-none tracking-tighter text-accent">
-                        CICS
-                    </span>
-                    <span className="font-headline text-xl font-semibold leading-none text-primary">
-                        DocHub
-                    </span>
-                </div>
                 <ThemeToggle />
             </div>
         </header>
@@ -205,7 +197,7 @@ export default function LoginPage() {
             </Card>
         </main>
         
-        <footer className="bg-amber-50 dark:bg-[#1e2a3a] text-muted-foreground p-4 text-center text-xs border-t border-border shadow-[0_-2px_6px_rgba(0,0,0,0.06)]">
+        <footer className="bg-amber-50 dark:bg-[#1a2535] text-muted-foreground p-4 text-center text-xs border-t border-border shadow-[0_-2px_6px_rgba(0,0,0,0.06)]">
             <div className="flex flex-wrap justify-center items-center gap-x-4 gap-y-1">
                 <span>© 2026 New Era University</span>
                 <span className="hidden sm:inline text-muted-foreground/50">•</span>
