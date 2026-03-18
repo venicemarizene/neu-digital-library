@@ -39,7 +39,6 @@ export default function StudentTable() {
       constraints: userConstraints
   });
   const [programFilter, setProgramFilter] = useState('All Programs');
-  const [sectionFilter, setSectionFilter] = useState('All Sections');
   const [searchTerm, setSearchTerm] = useState('');
   
   const handleBlockToggle = (uid: string, isBlocked: boolean) => {
@@ -68,13 +67,6 @@ export default function StudentTable() {
       });
   };
 
-  const sectionOptions = useMemo(() => {
-    if (!users) return [];
-    const sections = [...new Set(users.map(u => u.section).filter(Boolean) as string[])];
-    sections.sort();
-    return ['All Sections', ...sections];
-  }, [users]);
-
   const filteredUsers = useMemo(() => {
     if (!users) return [];
     
@@ -82,10 +74,6 @@ export default function StudentTable() {
 
     if (programFilter !== 'All Programs') {
         filtered = filtered.filter(user => user.program === programFilter);
-    }
-
-    if (sectionFilter !== 'All Sections') {
-        filtered = filtered.filter(user => user.section === sectionFilter);
     }
     
     if (searchTerm) {
@@ -97,7 +85,7 @@ export default function StudentTable() {
     }
 
     return filtered;
-  }, [users, programFilter, sectionFilter, searchTerm]);
+  }, [users, programFilter, searchTerm]);
 
   return (
     <Card className="rounded-lg">
@@ -123,16 +111,6 @@ export default function StudentTable() {
               ))}
             </SelectContent>
           </Select>
-           <Select value={sectionFilter} onValueChange={setSectionFilter} disabled={sectionOptions.length <= 1}>
-            <SelectTrigger className="w-full sm:w-[200px]">
-              <SelectValue placeholder="Filter by section..." />
-            </SelectTrigger>
-            <SelectContent>
-              {sectionOptions.map((s) => (
-                <SelectItem key={s} value={s}>{s}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
 
         <div className="border rounded-lg">
@@ -146,7 +124,6 @@ export default function StudentTable() {
                 <TableRow>
                   <TableHead>Student</TableHead>
                   <TableHead className="hidden sm:table-cell">Program</TableHead>
-                  <TableHead className="hidden md:table-cell">Section</TableHead>
                   <TableHead className="hidden md:table-cell">Status</TableHead>
                   <TableHead className="text-right">Access</TableHead>
                 </TableRow>
@@ -167,7 +144,6 @@ export default function StudentTable() {
                       </div>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">{user.program?.match(/\(([^)]+)\)/)?.[1] || user.program}</TableCell>
-                    <TableCell className="hidden md:table-cell">{user.section || 'N/A'}</TableCell>
                     <TableCell className="hidden md:table-cell">
                       <Badge variant={user.isBlocked ? 'destructive' : 'secondary'}>
                         {user.isBlocked ? 'Blocked' : 'Active'}

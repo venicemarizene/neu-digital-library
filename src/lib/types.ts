@@ -6,7 +6,6 @@ export interface AppUser {
   displayName: string | null;
   photoURL: string | null;
   program: string;
-  section: string;
   isAdmin: boolean;
   isBlocked: boolean;
   onboardingComplete: boolean;
