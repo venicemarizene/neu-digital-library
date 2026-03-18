@@ -11,6 +11,7 @@ import { Loader2, User, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/icons/logo';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import Image from 'next/image';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg viewBox="0 0 48 48" {...props}>
@@ -131,36 +132,64 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4 space-y-8">
-        <div className="text-center space-y-2">
-            <Logo className="justify-center" />
-            <p className="text-muted-foreground text-sm max-w-xs mx-auto">Digital Library for College of Informatics and Computing Science</p>
-        </div>
+    <div className="flex min-h-screen flex-col bg-background">
+        <header className="bg-[#1a2235] text-white p-4 flex justify-between items-center shadow-md">
+            <Logo isDark={true} name="DocHub" brand="CICS" />
+            <span className="text-sm text-gray-400 font-medium">New Era University</span>
+        </header>
 
-        <Card className="w-full max-w-sm shadow-xl p-2">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="student">
-                        <User className="mr-2" />
-                        Student
-                    </TabsTrigger>
-                    <TabsTrigger value="admin">
-                        <ShieldCheck className="mr-2" />
-                        Admin
-                    </TabsTrigger>
-                </TabsList>
-            </Tabs>
+        <main className="flex flex-1 w-full flex-col items-center justify-center p-4">
+            <Card className="w-full max-w-[420px] shadow-2xl rounded-[20px] border-none">
+                <CardContent className="p-12 flex flex-col items-center gap-8">
+                    <div className="text-center space-y-2">
+                        <div className="mx-auto flex h-[72px] w-[72px] items-center justify-center rounded-full bg-white overflow-hidden mb-4">
+                             <Image
+                                src="/NEU_LOGO.png"
+                                alt="New Era University"
+                                width={72}
+                                height={72}
+                                className="object-cover"
+                            />
+                        </div>
+                        <h1 className="text-2xl font-bold tracking-tight">CICS DocHub Login</h1>
+                        <p className="text-muted-foreground text-sm">Digital Library for CICS Students & Faculty</p>
+                    </div>
 
-            <CardContent className="pt-6 flex flex-col gap-4">
-                <Button onClick={handleSignIn} className="w-full" disabled={loading}>
-                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2 h-5 w-5" />}
-                    {loading ? "Verifying..." : "Sign in with Google"}
-                </Button>
-                <p className="px-4 text-center text-xs text-muted-foreground">
-                    Institutional @neu.edu.ph domain enforced.
-                </p>
-            </CardContent>
-        </Card>
-    </main>
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                        <TabsList className="grid w-full grid-cols-2 h-12">
+                            <TabsTrigger value="student" className="h-full text-base gap-2">
+                                <User className="h-5 w-5" />
+                                Student
+                            </TabsTrigger>
+                            <TabsTrigger value="admin" className="h-full text-base gap-2">
+                                <ShieldCheck className="h-5 w-5" />
+                                Admin
+                            </TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+
+                    <div className="w-full space-y-2">
+                        <Button onClick={handleSignIn} className="w-full h-12 text-base" disabled={loading}>
+                            {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <GoogleIcon className="mr-2 h-6 w-6" />}
+                            {loading ? "Verifying..." : "Sign in with Google"}
+                        </Button>
+                        <p className="px-4 text-center text-xs text-muted-foreground">
+                            An institutional @neu.edu.ph account is required.
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+        </main>
+        
+        <footer className="bg-[#1a2235] text-gray-400 p-4 text-center text-xs">
+            <div className="flex flex-wrap justify-center items-center gap-x-4 gap-y-1">
+                <span>© 2026 New Era University — CICS</span>
+                <span className="hidden sm:inline text-gray-600">•</span>
+                <span>College of Informatics and Computing Science</span>
+                <span className="hidden sm:inline text-gray-600">•</span>
+                <span>Digital Repository</span>
+            </div>
+        </footer>
+    </div>
   );
 }
