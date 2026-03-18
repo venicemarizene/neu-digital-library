@@ -4,7 +4,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Helper function to check if the requesting user is an admin based on their verified email.
     function isRequestingUserAdmin() {
-      return request.auth.token.email == 'venicemarizene.linga@neu.edu.ph' && request.auth.token.email_verified == true;
+      return request.auth.token.email_verified == true && (request.auth.token.email in ['venicemarizene.linga@neu.edu.ph', 'jcesperanza@neu.edu.ph']);
     }
 
     // Users can only read and write to their own document.

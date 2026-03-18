@@ -14,8 +14,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 
 const categories = ['All', 'Curriculum', 'Manual', 'Form', 'Guide'];
 type SortOption = 'uploadedAt' | 'filename';
@@ -30,107 +28,115 @@ export default function DocumentList() {
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [sortOption, setSortOption] = useState<SortOption>('uploadedAt');
 
+  const [allDocuments, setAllDocuments] = useState<DocumentType[]>([]);
+  const [docsLoading, setDocsLoading] = useState(true);
+  const [interactedDocIds, setInteractedDocIds] = useState<Set<string>>(new Set());
+  const [logsLoading, setLogsLoading] = useState(true);
 
-const [allDocuments, setAllDocuments] = useState<DocumentType[]>([]);
-const [docsLoading, setDocsLoading] = useState(true);
-const [interactedDocIds, setInteractedDocIds] = useState<Set<string>>(new Set());
-const [logsLoading, setLogsLoading] = useState(true);
-
-useEffect(() => {
-  if (!user || !db) {
-    setLogsLoading(false);
-    return;
-  };
-
-  const fetchInteractionLogs = async () => {
-    setLogsLoading(true);
-    try {
-      const logsQuery = query(
-        collection(db, "Logs"),
-        where('userId', '==', user.uid),
-        where('action', 'in', ['view', 'download'])
-      );
-      const logsSnapshot = await getDocs(logsQuery);
-      const ids = new Set(logsSnapshot.docs.map(d => d.data().documentId as string));
-      setInteractedDocIds(ids);
-    } catch (error) {
-      console.error("Error fetching interaction logs:", error);
-      // Silently fail, badges for unseen docs just won't show.
-    } finally {
+  // Fetch interaction logs to determine 'New' badge visibility
+  useEffect(() => {
+    if (!user || !db) {
       setLogsLoading(false);
+      return;
     }
-  };
 
-  fetchInteractionLogs();
-}, [user, db]);
-
-useEffect(() => {
-  if (!user || !db) {
-    setDocsLoading(false);
-    return;
-  };
-
-  const fetchDocs = async () => {
-    try {
-      setDocsLoading(true);
-
-      const docsQuery = query(
-        collection(db, 'Documents'),
-        where('allowedStudentIds', 'array-contains', user.uid),
-        where('isArchived', '==', false)
-      );
-      
-      const querySnapshot = await getDocs(docsQuery);
-
-      const docs = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() } as DocumentType));
-      
-      setAllDocuments(docs);
-    } catch (err: any) {
-      console.error('Error fetching documents:', err);
-      if (err.code === 'permission-denied') {
-          const permissionError = new FirestorePermissionError({
-              path: 'Documents',
-              operation: 'list',
-          });
-          errorEmitter.emit('permission-error', permissionError);
+    const fetchInteractionLogs = async () => {
+      setLogsLoading(true);
+      try {
+        const logsQuery = query(
+          collection(db, 'Logs'),
+          where('userId', '==', user.uid),
+          where('action', 'in', ['view', 'download'])
+        );
+        const logsSnapshot = await getDocs(logsQuery);
+        const ids = new Set(logsSnapshot.docs.map(d => d.data().documentId as string));
+        setInteractedDocIds(ids);
+      } catch (error) {
+        console.error('Error fetching interaction logs:', error);
+        // Silently fail — badges for unseen docs just won't show
+      } finally {
+        setLogsLoading(false);
       }
-    } finally {
-      setDocsLoading(false);
-    }
-  };
+    };
 
-  fetchDocs();
-}, [user, db]);
-  
+    fetchInteractionLogs();
+  }, [user, db]);
+
+  // Fetch documents using visibility + targetProgram (not allowedStudentIds)
+  useEffect(() => {
+    if (!user || !appUser?.program || !db) {
+      setDocsLoading(false);
+      return;
+    }
+
+    const fetchDocs = async () => {
+      try {
+        setDocsLoading(true);
+
+        // Query 1: Documents visible to ALL CICS students that are not archived
+        const allCicsQuery = query(
+          collection(db, 'Documents'),
+          where('visibility', '==', 'ALL_CICS'),
+          where('isArchived', '==', false)
+        );
+
+        // Query 2: Documents specific to the student's program that are not archived
+        const programQuery = query(
+          collection(db, 'Documents'),
+          where('visibility', '==', 'PROGRAM_SPECIFIC'),
+          where('targetProgram', '==', appUser.program),
+          where('isArchived', '==', false)
+        );
+
+        const [allCicsSnap, programSnap] = await Promise.all([
+          getDocs(allCicsQuery),
+          getDocs(programQuery),
+        ]);
+
+        const merged: DocumentType[] = [
+          ...allCicsSnap.docs.map(d => ({ id: d.id, ...d.data() } as DocumentType)),
+          ...programSnap.docs.map(d => ({ id: d.id, ...d.data() } as DocumentType)),
+        ];
+
+        setAllDocuments(merged);
+      } catch (err: any) {
+        console.error('Error fetching documents:', err);
+      } finally {
+        setDocsLoading(false);
+      }
+    };
+
+    fetchDocs();
+  }, [user, appUser?.program, db]);
+
   const loading = userLoading || docsLoading || logsLoading;
-  
+
   const filteredDocuments = useMemo(() => {
     if (!allDocuments) return [];
 
-    // Filter out archived documents first - This is now redundant due to query but safe to keep
-    let docs = allDocuments.filter(doc => !doc.isArchived);
-  
+    let docs = [...allDocuments];
+
     // Client-side sorting
     docs.sort((a, b) => {
       if (sortOption === 'uploadedAt') {
         const dateA = a.uploadedAt?.toDate()?.getTime() || 0;
         const dateB = b.uploadedAt?.toDate()?.getTime() || 0;
-        return dateB - dateA; // descending for newest
+        return dateB - dateA;
       }
       if (sortOption === 'filename') {
-        return a.filename.localeCompare(b.filename); // ascending for alphabetical
+        return a.filename.localeCompare(b.filename);
       }
       return 0;
     });
 
     if (activeCategory !== 'All') {
-        docs = docs.filter(doc => (doc as any).category.toLowerCase() === activeCategory.toLowerCase());
+      docs = docs.filter(doc => (doc as any).category.toLowerCase() === activeCategory.toLowerCase());
     }
     if (searchTerm) {
-        docs = docs.filter(doc =>
-            doc.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            doc.description?.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+      docs = docs.filter(doc =>
+        doc.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doc.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
     return docs;
   }, [allDocuments, searchTerm, activeCategory, sortOption]);
@@ -140,21 +146,21 @@ useEffect(() => {
       toast({ variant: 'destructive', title: 'Account Restricted', description: 'Your account is restricted from viewing files.' });
       return;
     }
-    
+
     // Immediately update local state to remove the 'New' badge
     setInteractedDocIds(prevIds => new Set(prevIds).add(doc.id));
 
     if (user && db) {
-        try {
-            await addDoc(collection(db, 'Logs'), {
-                userId: user.uid,
-                documentId: doc.id,
-                action: 'view',
-                downloadedAt: serverTimestamp(),
-            });
-        } catch (e) {
-            console.error('Error logging view event', e);
-        }
+      try {
+        await addDoc(collection(db, 'Logs'), {
+          userId: user.uid,
+          documentId: doc.id,
+          action: 'view',
+          downloadedAt: serverTimestamp(),
+        });
+      } catch (e) {
+        console.error('Error logging view event', e);
+      }
     }
 
     window.open(doc.downloadURL, '_blank');
@@ -169,16 +175,14 @@ useEffect(() => {
       toast({ variant: 'destructive', title: 'Account Restricted', description: 'Your account is restricted from downloading files.' });
       return;
     }
-    
-    setInteractedDocIds(prevIds => new Set(prevIds).add(docToDownload.id));
 
+    setInteractedDocIds(prevIds => new Set(prevIds).add(docToDownload.id));
     setDownloading(docToDownload.id);
+
     try {
-      // Increment download count
       const docRef = doc(db, 'Documents', docToDownload.id);
       updateDoc(docRef, { downloads: increment(1) });
-      
-      // Log the download action
+
       await addDoc(collection(db, 'Logs'), {
         userId: user.uid,
         documentId: docToDownload.id,
@@ -186,7 +190,6 @@ useEffect(() => {
         downloadedAt: serverTimestamp(),
       });
 
-      // Perform the download
       const response = await fetch(docToDownload.downloadURL);
       if (!response.ok) throw new Error('Network response was not ok.');
       const blob = await response.blob();
@@ -198,7 +201,6 @@ useEffect(() => {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
     } catch (error) {
       console.error('Error downloading document:', error);
       toast({ variant: 'destructive', title: 'Download Failed', description: 'Could not download the file. Please try again.' });
@@ -207,6 +209,7 @@ useEffect(() => {
     }
   };
 
+  // Highlights matching search text in bold yellow
   const Highlight = ({ text, term }: { text: string | null | undefined; term: string }) => {
     if (!term.trim() || !text) {
       return <>{text}</>;
@@ -231,100 +234,104 @@ useEffect(() => {
   const renderGrid = (docs: DocumentType[]) => {
     const sevenDaysAgo = subDays(new Date(), 7);
     return (
-    <TooltipProvider delayDuration={100}>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-        {docs.map((doc) => {
-          const hasInteracted = interactedDocIds.has(doc.id);
-          const isNewByDate = doc.uploadedAt && doc.uploadedAt.toDate() > sevenDaysAgo;
-          const isUnseen = !hasInteracted;
-          const showNewBadge = !hasInteracted && (isNewByDate || isUnseen);
-          return (
-            <Tooltip key={doc.id}>
-              <TooltipTrigger asChild>
-                <Card className="relative flex flex-col transition-all hover:shadow-lg rounded-lg">
-                  {showNewBadge && (
-                    <Badge className="absolute top-3 right-3 z-10 bg-blue-100 text-blue-800 text-xs font-medium rounded-full px-2 py-0.5 border-transparent hover:bg-blue-100">
-                      New
-                    </Badge>
-                  )}
-                  <CardHeader>
-                    <div className="flex items-start gap-4">
-                      <div className="bg-primary/10 p-2 rounded-md">
-                        <FileText className="h-6 w-6 flex-shrink-0 text-primary" />
+      <TooltipProvider delayDuration={100}>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+          {docs.map((doc) => {
+            const hasInteracted = interactedDocIds.has(doc.id);
+            const isNewByDate = doc.uploadedAt && doc.uploadedAt.toDate() > sevenDaysAgo;
+            const showNewBadge = !hasInteracted && (isNewByDate || !hasInteracted);
+            return (
+              <Tooltip key={doc.id}>
+                <TooltipTrigger asChild>
+                  <Card className="relative flex flex-col transition-all hover:shadow-lg rounded-lg">
+                    {showNewBadge && (
+                      <Badge className="absolute top-3 right-3 z-10 bg-blue-100 text-blue-800 text-xs font-medium rounded-full px-2 py-0.5 border-transparent hover:bg-blue-100">
+                        New
+                      </Badge>
+                    )}
+                    <CardHeader>
+                      <div className="flex items-start gap-4">
+                        <div className="bg-primary/10 p-2 rounded-md">
+                          <FileText className="h-6 w-6 flex-shrink-0 text-primary" />
+                        </div>
+                        <div>
+                          <CardTitle className="line-clamp-2 text-base font-headline">
+                            <Highlight text={doc.filename} term={searchTerm} />
+                          </CardTitle>
+                          <CardDescription>{doc.category}</CardDescription>
+                        </div>
                       </div>
-                      <div>
-                        <CardTitle className="line-clamp-2 text-base font-headline">
-                          <Highlight text={doc.filename} term={searchTerm} />
-                        </CardTitle>
-                        <CardDescription>{doc.category}</CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardFooter className="flex items-center gap-2 mt-auto">
-                        <Button variant="outline" size="sm" onClick={() => handleView(doc as DocumentType)} disabled={isBlocked}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View
-                        </Button>
-                        <Button size="sm" onClick={() => handleDownload(doc as DocumentType)} disabled={downloading === doc.id || isBlocked}>
-                          {downloading === doc.id ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <Download className="mr-2 h-4 w-4" />
-                          )}
-                          {downloading === doc.id ? 'Downloading' : 'Download'}
-                        </Button>
-                  </CardFooter>
-                </Card>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" align="center" className="max-w-xs">
-                <div className="space-y-1.5 p-2 text-left">
-                  <p className="font-semibold text-sm">
-                    <Highlight text={doc.description || 'No description available.'} term={searchTerm} />
-                  </p>
-                  <p className="text-xs text-muted-foreground">
+                    </CardHeader>
+                    <CardFooter className="flex items-center gap-2 mt-auto">
+                      <Button variant="outline" size="sm" onClick={() => handleView(doc as DocumentType)} disabled={isBlocked}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        View
+                      </Button>
+                      <Button size="sm" onClick={() => handleDownload(doc as DocumentType)} disabled={downloading === doc.id || isBlocked}>
+                        {downloading === doc.id ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Download className="mr-2 h-4 w-4" />
+                        )}
+                        {downloading === doc.id ? 'Downloading' : 'Download'}
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" align="center" className="max-w-xs">
+                  <div className="space-y-1.5 p-2 text-left">
+                    <p className="font-semibold text-sm">
+                      <Highlight text={doc.description || 'No description available.'} term={searchTerm} />
+                    </p>
+                    <p className="text-xs text-muted-foreground">
                       Uploaded: {doc.uploadedAt ? format(doc.uploadedAt.toDate(), 'PPP') : 'N/A'}
-                  </p>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          )})}
-      </div>
-    </TooltipProvider>
-  )};
+                    </p>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
+        </div>
+      </TooltipProvider>
+    );
+  };
 
   const renderList = (docs: DocumentType[]) => {
     const sevenDaysAgo = subDays(new Date(), 7);
     return (
-    <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-      {/* Header for desktop */}
-      <div className="hidden md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] gap-4 items-center px-6 py-3 border-b">
-        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">TITLE</span>
-        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">VISIBILITY</span>
-        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">UPLOADED DATE</span>
-        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider text-right">ACTIONS</span>
-      </div>
+      <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+        {/* Header for desktop */}
+        <div className="hidden md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] gap-4 items-center px-6 py-3 border-b">
+          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">TITLE</span>
+          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">VISIBILITY</span>
+          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">UPLOADED DATE</span>
+          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider text-right">ACTIONS</span>
+        </div>
 
-      {/* Rows */}
-      <div className="divide-y divide-border">
-        {docs.map((doc) => {
+        {/* Rows */}
+        <div className="divide-y divide-border">
+          {docs.map((doc) => {
             const hasInteracted = interactedDocIds.has(doc.id);
             const isNewByDate = doc.uploadedAt && doc.uploadedAt.toDate() > sevenDaysAgo;
-            const isUnseen = !hasInteracted;
-            const showNewBadge = !hasInteracted && (isNewByDate || isUnseen);
+            const showNewBadge = !hasInteracted && (isNewByDate || !hasInteracted);
             return (
               <div key={doc.id} className="p-4 hover:bg-muted/50 transition-colors">
                 {/* Desktop View */}
                 <div className="hidden md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] gap-4 items-center">
                   <div className="flex items-center gap-4">
                     <div className="bg-primary/10 text-primary p-2 rounded-lg">
-                      <FileText className="h-6 w-6"/>
+                      <FileText className="h-6 w-6" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="font-bold text-foreground line-clamp-1">
                           <Highlight text={doc.filename} term={searchTerm} />
                         </p>
-                        {showNewBadge && <Badge className="bg-blue-100 text-blue-800 border-transparent text-xs font-medium px-2 py-0.5 hover:bg-blue-100">New</Badge>}
+                        {showNewBadge && (
+                          <Badge className="bg-blue-100 text-blue-800 border-transparent text-xs font-medium px-2 py-0.5 hover:bg-blue-100">
+                            New
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground">PDF Document</p>
                     </div>
@@ -372,14 +379,18 @@ useEffect(() => {
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-4 flex-1 min-w-0">
                       <div className="bg-primary/10 text-primary p-2 rounded-lg">
-                        <FileText className="h-6 w-6"/>
+                        <FileText className="h-6 w-6" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start gap-2">
-                            <p className="font-bold text-foreground line-clamp-2 flex-grow">
-                              <Highlight text={doc.filename} term={searchTerm} />
-                            </p>
-                            {showNewBadge && <Badge className="bg-blue-100 text-blue-800 border-transparent text-xs font-medium px-2 py-0.5 flex-shrink-0 mt-1 hover:bg-blue-100">New</Badge>}
+                          <p className="font-bold text-foreground line-clamp-2 flex-grow">
+                            <Highlight text={doc.filename} term={searchTerm} />
+                          </p>
+                          {showNewBadge && (
+                            <Badge className="bg-blue-100 text-blue-800 border-transparent text-xs font-medium px-2 py-0.5 flex-shrink-0 mt-1 hover:bg-blue-100">
+                              New
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-sm text-muted-foreground">PDF Document</p>
                       </div>
@@ -425,48 +436,50 @@ useEffect(() => {
                   </div>
                 </div>
               </div>
-          )})}
+            );
+          })}
+        </div>
       </div>
-    </div>
-  )};
+    );
+  };
 
   if (loading) {
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col gap-4">
-               <Skeleton className="h-10 flex-1" />
-                <div className="flex justify-between items-center">
-                    <div className="flex gap-2">
-                        <Skeleton className="h-10 w-20" />
-                        <Skeleton className="h-10 w-20" />
-                        <Skeleton className="h-10 w-20" />
-                    </div>
-                    <div className="flex gap-2">
-                        <Skeleton className="h-10 w-10" />
-                        <Skeleton className="h-10 w-10" />
-                    </div>
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4">
+          <Skeleton className="h-10 flex-1" />
+          <div className="flex justify-between items-center">
+            <div className="flex gap-2">
+              <Skeleton className="h-10 w-20" />
+              <Skeleton className="h-10 w-20" />
+              <Skeleton className="h-10 w-20" />
+            </div>
+            <div className="flex gap-2">
+              <Skeleton className="h-10 w-10" />
+              <Skeleton className="h-10 w-10" />
+            </div>
+          </div>
+        </div>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {[...Array(8)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="flex-row items-start gap-4">
+                <Skeleton className="h-10 w-10 rounded-md" />
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-5 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
                 </div>
-            </div>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {[...Array(8)].map((_, i) => (
-                <Card key={i}>
-                <CardHeader className="flex-row items-start gap-4">
-                    <Skeleton className="h-10 w-10 rounded-md" />
-                    <div className="space-y-2 flex-1">
-                    <Skeleton className="h-5 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <Skeleton className="h-4 w-full" />
-                </CardContent>
-                <CardFooter>
-                    <Skeleton className="h-9 w-20 mr-2" />
-                    <Skeleton className="h-9 w-24" />
-                </CardFooter>
-                </Card>
-            ))}
-            </div>
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-4 w-full" />
+              </CardContent>
+              <CardFooter>
+                <Skeleton className="h-9 w-20 mr-2" />
+                <Skeleton className="h-9 w-24" />
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
@@ -475,56 +488,56 @@ useEffect(() => {
     <div className="space-y-6">
       {isBlocked && (
         <Alert variant="destructive">
-            <Ban className="h-4 w-4" />
-            <AlertTitle>Account Restricted</AlertTitle>
-            <AlertDescription>
+          <Ban className="h-4 w-4" />
+          <AlertTitle>Account Restricted</AlertTitle>
+          <AlertDescription>
             Your account is restricted from downloading files. Please contact an administrator.
-            </AlertDescription>
+          </AlertDescription>
         </Alert>
       )}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div className="relative flex-grow w-full sm:w-auto">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input
-                    type="search"
-                    placeholder="Search by file, description..."
-                    className="w-full pl-10"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    disabled={isBlocked}
-                />
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-                <Button variant={view === 'grid' ? 'default' : 'outline'} onClick={() => setView('grid')}>
-                    <LayoutGrid className="mr-2 h-4 w-4" />
-                    Grid
-                </Button>
-                <Button variant={view === 'list' ? 'default' : 'outline'} onClick={() => setView('list')}>
-                    <List className="mr-2 h-4 w-4" />
-                    List
-                </Button>
-            </div>
+          <div className="relative flex-grow w-full sm:w-auto">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search by file, description..."
+              className="w-full pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              disabled={isBlocked}
+            />
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Button variant={view === 'grid' ? 'default' : 'outline'} onClick={() => setView('grid')}>
+              <LayoutGrid className="mr-2 h-4 w-4" />
+              Grid
+            </Button>
+            <Button variant={view === 'list' ? 'default' : 'outline'} onClick={() => setView('list')}>
+              <List className="mr-2 h-4 w-4" />
+              List
+            </Button>
+          </div>
         </div>
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 w-full">
-            <div className="flex gap-2 flex-wrap">
-                {categories.map(cat => (
-                    <Button key={cat} variant={activeCategory === cat ? 'default' : 'outline'} onClick={() => setActiveCategory(cat)}>
-                        {cat}
-                    </Button>
-                ))}
-            </div>
-            <div className="w-full sm:w-auto md:w-[200px]">
-                <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Sort by" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="uploadedAt">Sort by: Newest</SelectItem>
-                        <SelectItem value="filename">Sort by: Alphabetical</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
+          <div className="flex gap-2 flex-wrap">
+            {categories.map(cat => (
+              <Button key={cat} variant={activeCategory === cat ? 'default' : 'outline'} onClick={() => setActiveCategory(cat)}>
+                {cat}
+              </Button>
+            ))}
+          </div>
+          <div className="w-full sm:w-auto md:w-[200px]">
+            <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="uploadedAt">Sort by: Newest</SelectItem>
+                <SelectItem value="filename">Sort by: Alphabetical</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 

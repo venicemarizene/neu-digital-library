@@ -23,7 +23,7 @@ const programs = [
   'Bachelor of Science in Information System (BSIS)',
 ];
 
-const ADMIN_EMAIL = 'venicemarizene.linga@neu.edu.ph';
+const ADMIN_EMAILS = ['venicemarizene.linga@neu.edu.ph', 'jcesperanza@neu.edu.ph'];
 
 export default function OnboardingPage() {
   const { user, loading, isProfileComplete } = useUser();
@@ -64,7 +64,7 @@ export default function OnboardingPage() {
       photoURL: user.photoURL,
       program: program,
       section: section.trim(),
-      isAdmin: user.email === ADMIN_EMAIL,
+      isAdmin: user.email ? ADMIN_EMAILS.includes(user.email) : false,
       isBlocked: false,
       onboardingComplete: true,
       createdAt: serverTimestamp(),

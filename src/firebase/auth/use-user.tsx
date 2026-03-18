@@ -14,7 +14,7 @@ interface UserData {
   isBlocked: boolean;
 }
 
-const ADMIN_EMAIL = 'venicemarizene.linga@neu.edu.ph';
+const ADMIN_EMAILS = ['venicemarizene.linga@neu.edu.ph', 'jcesperanza@neu.edu.ph'];
 
 export const useUser = (): UserData => {
   const auth = useAuth();
@@ -70,7 +70,7 @@ export const useUser = (): UserData => {
     const unsubscribeFirestore = onSnapshot(
       userDocRef,
       (docSnap) => {
-        const isDesignatedAdmin = user.email === ADMIN_EMAIL;
+        const isDesignatedAdmin = user.email && ADMIN_EMAILS.includes(user.email);
         if (docSnap.exists()) {
           const userData = {
             uid: docSnap.id,
@@ -78,14 +78,14 @@ export const useUser = (): UserData => {
           } as AppUser;
           setAppUser(userData);
           setIsProfileComplete(userData.onboardingComplete || false);
-          setIsAdmin(userData.isAdmin || isDesignatedAdmin);
+          setIsAdmin(userData.isAdmin || !!isDesignatedAdmin);
           setIsBlocked(userData.isBlocked || false);
         } else {
           // This is a new user who hasn't completed onboarding.
           setAppUser(null);
           setIsProfileComplete(false);
           // Still grant admin status if they are the designated admin.
-          setIsAdmin(isDesignatedAdmin);
+          setIsAdmin(!!isDesignatedAdmin);
           setIsBlocked(false);
         }
         // This is the final step in the loading process for a logged-in user.
