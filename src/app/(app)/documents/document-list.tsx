@@ -1,7 +1,7 @@
 'use client';
-import { useState, useMemo } from 'react';
-import { collection, addDoc, serverTimestamp, orderBy, Timestamp, where, doc, updateDoc, increment } from 'firebase/firestore';
-import { useUser, useFirestore, useCollection } from '@/firebase';
+import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, updateDoc, increment } from 'firebase/firestore';
+import { useUser, useFirestore } from '@/firebase';
+import { useState, useMemo, useEffect } from 'react';
 import type { Document as DocumentType } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -29,20 +29,49 @@ export default function DocumentList() {
   const [sortOption, setSortOption] = useState<SortOption>('uploadedAt');
 
 
-  const documentConstraints = useMemo(() => {
-    if (!user) return [];
-    // The query MUST be filtered by allowedStudentIds to comply with security rules.
-    // Sorting will be handled on the client to avoid Firestore's composite index limitations.
-    return [
-        where('allowedStudentIds', 'array-contains', user.uid),
-    ]
-  }, [user]);
+const [allDocuments, setAllDocuments] = useState<DocumentType[]>([]);
+const [docsLoading, setDocsLoading] = useState(true);
 
-  const { data: allDocuments, loading: docsLoading } = useCollection<DocumentType>('Documents', { 
-    constraints: documentConstraints, 
-    listen: true, 
-    skip: userLoading || !user
-  });
+useEffect(() => {
+  if (!user || !appUser?.program || !db) return;
+
+  const fetchDocs = async () => {
+    try {
+      setDocsLoading(true);
+
+      // Query 1: Documents visible to ALL CICS students
+      const allCicsQuery = query(
+        collection(db, 'Documents'),
+        where('visibility', '==', 'ALL_CICS')
+      );
+
+      // Query 2: Documents specific to the student's program
+      const programQuery = query(
+        collection(db, 'Documents'),
+        where('visibility', '==', 'PROGRAM_SPECIFIC'),
+        where('targetProgram', '==', appUser.program) // exact match to user's program string
+      );
+
+      const [allCicsSnap, programSnap] = await Promise.all([
+        getDocs(allCicsQuery),
+        getDocs(programQuery)
+      ]);
+
+      const merged: DocumentType[] = [
+        ...allCicsSnap.docs.map(d => ({ id: d.id, ...d.data() } as DocumentType)),
+        ...programSnap.docs.map(d => ({ id: d.id, ...d.data() } as DocumentType)),
+      ];
+
+      setAllDocuments(merged);
+    } catch (err) {
+      console.error('Error fetching documents:', err);
+    } finally {
+      setDocsLoading(false);
+    }
+  };
+
+  fetchDocs();
+}, [user, appUser?.program, db]);
   
   const loading = userLoading || docsLoading;
   
