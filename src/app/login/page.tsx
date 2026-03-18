@@ -144,7 +144,7 @@ export default function LoginPage() {
                         className="object-cover w-full h-full"
                     />
                 </div>
-                <span className="text-xl font-semibold text-[#a8872a] dark:text-primary font-playfair">New Era University</span>
+                <span className="text-xl font-semibold text-[#a8872a] dark:text-accent font-playfair">New Era University</span>
             </div>
             <div className="flex items-center gap-4">
                 <ThemeToggle />
