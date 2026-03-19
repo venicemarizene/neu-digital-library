@@ -624,78 +624,87 @@ export default function DocumentManager() {
                                     <Download className="h-3 w-3" /> {doc.downloads ?? 0} downloads
                                 </p>
                             </CardContent>
-                            <CardFooter className="mt-auto">
-                                <TooltipProvider delayDuration={100}>
-                                    <div className="flex w-full items-center justify-between">
-                                        <div className="flex items-center gap-2">
+                            <CardFooter className="mt-auto flex items-center justify-between border-t p-3">
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="outline"
+                                        className="h-auto flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium"
+                                        onClick={() => handleView(doc as DocumentType)}
+                                    >
+                                        <Eye className="h-4 w-4" />
+                                        <span>View</span>
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        className="h-auto flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium"
+                                        onClick={() => handleDownload(doc as DocumentType)}
+                                        disabled={downloading === doc.id}
+                                    >
+                                        {downloading === doc.id ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <Download className="h-4 w-4" />
+                                        )}
+                                        <span>{downloading === doc.id ? 'Downloading...' : 'Download'}</span>
+                                    </Button>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <TooltipProvider delayDuration={100}>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    size="icon"
+                                                    variant="outline"
+                                                    className="h-8 w-8 rounded-lg border transition-colors hover:bg-amber-50 hover:border-amber-300 hover:text-amber-600"
+                                                    onClick={() => handleArchive(doc)}
+                                                >
+                                                    <Archive className="h-4 w-4" />
+                                                    <span className="sr-only">Archive</span>
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>Archive</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                        <AlertDialog>
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
-                                                    <Button size="icon" variant="outline" onClick={() => handleView(doc as DocumentType)}>
-                                                        <Eye className="h-4 w-4" />
-                                                        <span className="sr-only">View</span>
-                                                    </Button>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button
+                                                            size="icon"
+                                                            variant="outline"
+                                                            className="h-8 w-8 rounded-lg border text-red-500 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                            <span className="sr-only">Delete</span>
+                                                        </Button>
+                                                    </AlertDialogTrigger>
                                                 </TooltipTrigger>
-                                                <TooltipContent><p>View</p></TooltipContent>
+                                                <TooltipContent>
+                                                    <p>Delete</p>
+                                                </TooltipContent>
                                             </Tooltip>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <Button size="icon" onClick={() => handleDownload(doc as DocumentType)} disabled={downloading === doc.id}>
-                                                        {downloading === doc.id ? (
-                                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                                        ) : (
-                                                            <Download className="h-4 w-4" />
-                                                        )}
-                                                        <span className="sr-only">Download</span>
-                                                    </Button>
-                                                </TooltipTrigger>
-                                                <TooltipContent><p>{downloading === doc.id ? 'Downloading...' : 'Download'}</p></TooltipContent>
-                                            </Tooltip>
-                                        </div>
-                                        
-                                        <div className="flex items-center gap-2">
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <Button size="icon" variant="outline" onClick={() => handleArchive(doc)}>
-                                                        <Archive className="h-4 w-4" />
-                                                        <span className="sr-only">Archive</span>
-                                                    </Button>
-                                                </TooltipTrigger>
-                                                <TooltipContent><p>Archive</p></TooltipContent>
-                                            </Tooltip>
-                                            <AlertDialog>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <AlertDialogTrigger asChild>
-                                                            <Button size="icon" variant="outline" className="text-red-500 border border-red-200 hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-all duration-200">
-                                                                <Trash2 className="h-4 w-4" />
-                                                                <span className="sr-only">Delete</span>
-                                                            </Button>
-                                                        </AlertDialogTrigger>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent><p>Delete</p></TooltipContent>
-                                                </Tooltip>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
-                                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        This action cannot be undone. This will permanently delete the document
-                                                        "{doc.filename}" from storage and records.
-                                                    </AlertDialogDescription>
-                                                    </AlertDialogHeader>
-                                                    <AlertDialogFooter>
-                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                    <AlertDialogAction
-                                                        onClick={() => handleDelete(doc)}
-                                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                                    >
-                                                        Delete
-                                                    </AlertDialogAction>
-                                                    </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
-                                        </div>
-                                    </div>
-                                </TooltipProvider>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    This action cannot be undone. This will permanently delete the document
+                                                    "{doc.filename}" from storage and records.
+                                                </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                    onClick={() => handleDelete(doc)}
+                                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                >
+                                                    Delete
+                                                </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </TooltipProvider>
+                                </div>
                             </CardFooter>
                         </Card>
                     ))}
