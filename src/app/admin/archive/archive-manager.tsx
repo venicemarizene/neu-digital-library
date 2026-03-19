@@ -177,11 +177,7 @@ export default function ArchiveManager() {
     <div className="flex flex-col gap-8">
       <div>
         <Card className='rounded-lg'>
-          <CardHeader>
-            <CardTitle>Archived Documents</CardTitle>
-            <CardDescription>View and manage documents that have been archived.</CardDescription>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <div className="flex flex-col gap-4 mb-6">
                 <div className="flex flex-col md:flex-row gap-4 w-full">
                     <div className="relative flex-grow">
