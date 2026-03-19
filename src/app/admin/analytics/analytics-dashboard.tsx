@@ -172,42 +172,43 @@ export default function AnalyticsDashboard() {
   }
 
   return (
-    <div className="space-y-6">
-       {/* Simplified UI for selecting the date range with simple date inputs. */}
-       <div className="flex flex-col sm:flex-row justify-end items-end gap-4">
-            <div className="grid gap-2 w-full sm:w-auto">
-                <label htmlFor="start-date" className="text-sm font-medium text-muted-foreground">Start Date</label>
-                <Input
-                    id="start-date"
-                    type="date"
-                    value={date?.from ? format(date.from, 'yyyy-MM-dd') : ''}
-                    onChange={(e) => {
-                        if(e.target.value) {
-                            // Using new Date with a 'T00:00:00' suffix ensures the date is parsed in the user's local timezone.
-                            const fromDate = new Date(e.target.value + 'T00:00:00');
-                            setDate(prev => ({ from: fromDate, to: prev?.to }));
-                            setPeriod('custom');
-                        }
-                    }}
-                    className="w-full sm:w-auto"
-                />
-            </div>
-            <div className="grid gap-2 w-full sm:w-auto">
-                <label htmlFor="end-date" className="text-sm font-medium text-muted-foreground">End Date</label>
-                <Input
-                    id="end-date"
-                    type="date"
-                    value={date?.to ? format(date.to, 'yyyy-MM-dd') : ''}
-                    onChange={(e) => {
-                        if(e.target.value) {
-                             // Using new Date with a 'T00:00:00' suffix ensures the date is parsed in the user's local timezone.
-                            const toDate = new Date(e.target.value + 'T00:00:00');
-                            setDate(prev => ({ from: prev?.from, to: toDate }));
-                            setPeriod('custom');
-                        }
-                    }}
-                    className="w-full sm:w-auto"
-                />
+    <div className="space-y-6 w-full overflow-x-hidden">
+       <div className="flex flex-col md:flex-row flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+                <div className="grid gap-2 w-full sm:w-auto">
+                    <label htmlFor="start-date" className="text-sm font-medium text-muted-foreground">Start Date</label>
+                    <Input
+                        id="start-date"
+                        type="date"
+                        value={date?.from ? format(date.from, 'yyyy-MM-dd') : ''}
+                        onChange={(e) => {
+                            if(e.target.value) {
+                                // Using new Date with a 'T00:00:00' suffix ensures the date is parsed in the user's local timezone.
+                                const fromDate = new Date(e.target.value + 'T00:00:00');
+                                setDate(prev => ({ from: fromDate, to: prev?.to }));
+                                setPeriod('custom');
+                            }
+                        }}
+                        className="w-full sm:w-auto"
+                    />
+                </div>
+                <div className="grid gap-2 w-full sm:w-auto">
+                    <label htmlFor="end-date" className="text-sm font-medium text-muted-foreground">End Date</label>
+                    <Input
+                        id="end-date"
+                        type="date"
+                        value={date?.to ? format(date.to, 'yyyy-MM-dd') : ''}
+                        onChange={(e) => {
+                            if(e.target.value) {
+                                // Using new Date with a 'T00:00:00' suffix ensures the date is parsed in the user's local timezone.
+                                const toDate = new Date(e.target.value + 'T00:00:00');
+                                setDate(prev => ({ from: prev?.from, to: toDate }));
+                                setPeriod('custom');
+                            }
+                        }}
+                        className="w-full sm:w-auto"
+                    />
+                </div>
             </div>
             <Tabs value={period} onValueChange={(v) => { if (v !== 'custom') setPeriod(v as Period)}}>
                 <TabsList className="w-full sm:w-auto grid grid-cols-3">
@@ -218,8 +219,7 @@ export default function AnalyticsDashboard() {
             </Tabs>
         </div>
       
-      {/* Stat cards that display totals for the selected period */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Sessions</CardTitle>
@@ -252,7 +252,6 @@ export default function AnalyticsDashboard() {
         </Card>
       </div>
 
-        {/* The main chart displaying activity over the selected period */}
         <Card>
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
@@ -268,8 +267,8 @@ export default function AnalyticsDashboard() {
           </CardHeader>
           <CardContent>
              {analyticsData.activity.length > 0 ? (
-              <ChartContainer config={chartConfig} className="min-h-[250px] w-full">
-                <ResponsiveContainer width="100%" height={300}>
+              <ChartContainer config={chartConfig} className="h-72 w-full">
+                <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={analyticsData.activity} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                         <defs>
                             <linearGradient id="colorDownloads" x1="0" y1="0" x2="0" y2="1">
@@ -296,5 +295,3 @@ export default function AnalyticsDashboard() {
     </div>
   );
 }
-
-    
