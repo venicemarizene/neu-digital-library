@@ -144,10 +144,14 @@ export default function DocumentList() {
       toast({ variant: 'destructive', title: 'Account Restricted', description: 'Your account is restricted from viewing files.' });
       return;
     }
-
-    // Immediately update local state to remove the 'New' badge
+  
+    // ✅ Open the window FIRST before any async operations
+    // This must be synchronous to avoid Safari popup blocker
+    const newWindow = window.open(doc.downloadURL, '_blank');
+  
+    // Then update local state and log to Firestore
     setInteractedDocIds(prevIds => new Set(prevIds).add(doc.id));
-
+  
     if (user && db) {
       try {
         await addDoc(collection(db, 'Logs'), {
@@ -160,8 +164,6 @@ export default function DocumentList() {
         console.error('Error logging view event', e);
       }
     }
-
-    window.open(doc.downloadURL, '_blank');
   };
 
   const handleDownload = async (docToDownload: DocumentType) => {
