@@ -33,7 +33,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={cn('min-h-screen bg-background font-body antialiased')} suppressHydrationWarning>
+      <body className={cn('min-h-screen bg-background font-body antialiased w-full overflow-x-hidden')} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
           defaultTheme="light"

@@ -5,7 +5,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>{children}</SidebarInset>
+      <SidebarInset className="max-w-full overflow-x-hidden">{children}</SidebarInset>
     </SidebarProvider>
   );
 }

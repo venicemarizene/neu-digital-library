@@ -66,7 +66,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <SidebarProvider>
       <AdminSidebar />
-      <SidebarInset>{children}</SidebarInset>
+      <SidebarInset className="max-w-full overflow-x-hidden">{children}</SidebarInset>
     </SidebarProvider>
   );
 }
