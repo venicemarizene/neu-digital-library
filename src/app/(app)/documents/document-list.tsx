@@ -518,16 +518,15 @@ export default function DocumentList() {
             </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 w-full">
-            {categories.map(cat => (
-                <Button key={cat} variant={activeCategory === cat ? 'default' : 'outline'} onClick={() => setActiveCategory(cat)}>
-                    {cat}
-                </Button>
-            ))}
-        </div>
-
-        <div className="flex w-full justify-start sm:justify-end">
-            <div className="w-full sm:w-auto md:w-[200px]">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-wrap gap-2">
+                {categories.map(cat => (
+                    <Button key={cat} variant={activeCategory === cat ? 'default' : 'outline'} onClick={() => setActiveCategory(cat)}>
+                        {cat}
+                    </Button>
+                ))}
+            </div>
+            <div className="w-full md:w-[200px]">
                 <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
                 <SelectTrigger>
                     <SelectValue placeholder="Sort by" />
