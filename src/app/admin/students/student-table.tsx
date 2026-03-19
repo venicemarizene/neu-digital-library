@@ -90,7 +90,7 @@ export default function StudentTable() {
   return (
     <Card className="rounded-lg">
       <CardContent className="pt-6">
-        <div className="mb-4 flex flex-col sm:flex-row gap-4">
+        <div className="mb-4 flex flex-col sm:flex-row gap-3">
           <div className="relative flex-grow">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
@@ -113,7 +113,7 @@ export default function StudentTable() {
           </Select>
         </div>
 
-        <div className="border rounded-lg">
+        <div className="border rounded-lg overflow-x-auto">
           {loading ? (
               <div className="flex justify-center items-center h-64">
                   <Loader2 className="h-8 w-8 animate-spin" />
