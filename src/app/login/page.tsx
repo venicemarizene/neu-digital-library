@@ -168,7 +168,7 @@ export default function LoginPage() {
                             <span className="text-accent">CICS</span>
                             <span className="text-primary"> DocHub</span>
                         </h1>
-                        <p className="text-muted-foreground text-sm">Digital Library for CICS Students & Faculty</p>
+                        <p className="text-muted-foreground text-sm">Digital Repository for CICS Students & Faculty</p>
                     </div>
 
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
