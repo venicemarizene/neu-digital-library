@@ -493,49 +493,51 @@ export default function DocumentList() {
           </AlertDescription>
         </Alert>
       )}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row items-center gap-3">
-          <div className="relative flex-grow w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search by file, description..."
-              className="w-full pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              disabled={isBlocked}
-            />
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <Button variant={view === 'grid' ? 'default' : 'outline'} onClick={() => setView('grid')}>
-              <LayoutGrid className="mr-2 h-4 w-4" />
-              Grid
-            </Button>
-            <Button variant={view === 'list' ? 'default' : 'outline'} onClick={() => setView('list')}>
-              <List className="mr-2 h-4 w-4" />
-              List
-            </Button>
-          </div>
+      <div className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full sm:flex-grow">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                type="search"
+                placeholder="Search by file, description..."
+                className="w-full pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                disabled={isBlocked}
+                />
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+                <Button variant={view === 'grid' ? 'default' : 'outline'} onClick={() => setView('grid')}>
+                <LayoutGrid className="mr-2 h-4 w-4" />
+                Grid
+                </Button>
+                <Button variant={view === 'list' ? 'default' : 'outline'} onClick={() => setView('list')}>
+                <List className="mr-2 h-4 w-4" />
+                List
+                </Button>
+            </div>
         </div>
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 w-full">
-          <div className="flex flex-wrap gap-2 w-full">
+
+        <div className="flex flex-wrap gap-2 w-full">
             {categories.map(cat => (
-              <Button key={cat} variant={activeCategory === cat ? 'default' : 'outline'} onClick={() => setActiveCategory(cat)}>
-                {cat}
-              </Button>
+                <Button key={cat} variant={activeCategory === cat ? 'default' : 'outline'} onClick={() => setActiveCategory(cat)}>
+                    {cat}
+                </Button>
             ))}
-          </div>
-          <div className="w-full sm:w-auto md:w-[200px]">
-            <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="uploadedAt">Sort by: Newest</SelectItem>
-                <SelectItem value="filename">Sort by: Alphabetical</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        </div>
+
+        <div className="flex w-full justify-start sm:justify-end">
+            <div className="w-full sm:w-auto md:w-[200px]">
+                <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
+                <SelectTrigger>
+                    <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="uploadedAt">Sort by: Newest</SelectItem>
+                    <SelectItem value="filename">Sort by: Alphabetical</SelectItem>
+                </SelectContent>
+                </Select>
+            </div>
         </div>
       </div>
 
