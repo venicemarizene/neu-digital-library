@@ -173,7 +173,7 @@ export default function AnalyticsDashboard() {
 
   return (
     <div className="space-y-6 w-full overflow-x-hidden">
-       <div className="flex flex-col md:flex-row flex-wrap items-center justify-between gap-4">
+       <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
                 <div className="grid gap-2 w-full sm:w-auto">
                     <label htmlFor="start-date" className="text-sm font-medium text-muted-foreground">Start Date</label>
@@ -267,7 +267,7 @@ export default function AnalyticsDashboard() {
           </CardHeader>
           <CardContent>
              {analyticsData.activity.length > 0 ? (
-              <ChartContainer config={chartConfig} className="h-72 w-full">
+              <ChartContainer config={chartConfig} className="h-72 w-full overflow-hidden">
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={analyticsData.activity} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                         <defs>
