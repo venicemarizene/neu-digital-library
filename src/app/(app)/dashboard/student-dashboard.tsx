@@ -60,7 +60,7 @@ const RecentActivityCard = ({ title, description, icon, documents, loading, onDo
                     <Carousel opts={{ align: "start", dragFree: true }} className="w-full">
                         <CarouselContent className="-ml-2">
                             {documents.map((doc) => (
-                                <CarouselItem key={doc.id} className="basis-[75%] sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5 pl-2">
+                                <CarouselItem key={doc.id} className="basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5 pl-2">
                                     <div className="p-1 h-full">
                                         <Card className="h-full group flex flex-col overflow-hidden transition-all hover:shadow-lg cursor-pointer" onClick={() => onView(doc)}>
                                             <CardContent className="p-3 flex flex-col items-start gap-3 flex-1">
@@ -97,8 +97,8 @@ const RecentActivityCard = ({ title, description, icon, documents, loading, onDo
                                 </CarouselItem>
                             ))}
                         </CarouselContent>
-                        <CarouselPrevious className="absolute left-[-1rem] top-1/2 -translate-y-1/2 hidden sm:flex" />
-                        <CarouselNext className="absolute right-[-1rem] top-1/2 -translate-y-1/2 hidden sm:flex" />
+                        <CarouselPrevious className="absolute left-[-1rem] top-1/2 -translate-y-1/2 flex" />
+                        <CarouselNext className="absolute right-[-1rem] top-1/2 -translate-y-1/2 flex" />
                     </Carousel>
                 ) : (
                     <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed bg-card py-12 text-center">
