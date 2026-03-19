@@ -494,8 +494,8 @@ export default function DocumentList() {
         </Alert>
       )}
       <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="relative flex-grow w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <div className="relative flex-grow w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
               type="search"
@@ -518,7 +518,7 @@ export default function DocumentList() {
           </div>
         </div>
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 w-full">
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex flex-wrap gap-2 w-full">
             {categories.map(cat => (
               <Button key={cat} variant={activeCategory === cat ? 'default' : 'outline'} onClick={() => setActiveCategory(cat)}>
                 {cat}
