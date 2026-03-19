@@ -64,31 +64,49 @@ export default function LoginPage() {
         const result = await signInWithPopup(auth, provider);
         const loggedInUser = result.user;
         
-        if (activeTab === 'admin') {
-            const userDocRef = doc(db, 'Users', loggedInUser.uid);
-            const userDoc = await getDoc(userDocRef);
-
-            // An admin can be defined by the isAdmin field in their user document
-            // OR by having a hardcoded admin email address.
-            // This check is necessary to allow the first-time login of the hardcoded admin,
-            // as their user document won't exist yet.
-            const isHardcodedAdmin = loggedInUser.email && ADMIN_EMAILS.includes(loggedInUser.email);
-            const isDbAdmin = userDoc.exists() && userDoc.data().isAdmin === true;
-
-            if (isHardcodedAdmin || isDbAdmin) {
-                router.push('/admin'); // Imperative redirect for admin
-            } else {
-                toast({
-                    variant: 'destructive',
-                    title: 'Access Denied',
-                    description: "You do not have administrative privileges.",
-                });
-                await signOut(auth);
-                setIsSigningIn(false);
+        // ✅ Replace with this:
+if (activeTab === 'admin') {
+    if (!loggedInUser.email?.endsWith('@neu.edu.ph')) {
+      toast({
+        variant: 'destructive',
+        title: 'Access Denied',
+        description: "Only @neu.edu.ph institutional accounts are allowed.",
+      });
+      await signOut(auth);
+      setIsSigningIn(false);
+      return;
+    }
+  
+    const userDocRef = doc(db, 'Users', loggedInUser.uid);
+    const userDoc = await getDoc(userDocRef);
+    const isHardcodedAdmin = loggedInUser.email && ADMIN_EMAILS.includes(loggedInUser.email);
+    const isDbAdmin = userDoc.exists() && userDoc.data().isAdmin === true;
+  
+    if (isHardcodedAdmin || isDbAdmin) {
+      router.push('/admin');
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Access Denied',
+        description: "You do not have administrative privileges.",
+      });
+      await signOut(auth);
+      setIsSigningIn(false);
+    }
+  } else { // Student login
+            // Validate email domain for students
+            if (!loggedInUser.email?.endsWith('@neu.edu.ph')) {
+              toast({
+                variant: 'destructive',
+                title: 'Access Denied',
+                description: "Only @neu.edu.ph institutional accounts are allowed.",
+              });
+              await signOut(auth);
+              setIsSigningIn(false);
+              return;
             }
-        } else { // Student login
-             router.push('/'); // Redirect to root, which will handle onboarding or dashboard
-        }
+            router.push('/');
+          }
 
     } catch (error: any) {
         let description = 'An unexpected error occurred during sign-in.';
