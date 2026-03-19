@@ -260,12 +260,12 @@ export default function DocumentList() {
                         </div>
                       </div>
                     </CardHeader>
-                    <CardFooter className="flex items-center gap-2 mt-auto">
-                      <Button variant="outline" size="sm" onClick={() => handleView(doc as DocumentType)} disabled={isBlocked}>
+                    <CardFooter className="flex items-center justify-center gap-3 w-full mt-auto">
+                      <Button variant="outline" size="sm" onClick={() => handleView(doc as DocumentType)} disabled={isBlocked} className="flex-1">
                         <Eye className="mr-2 h-4 w-4" />
                         View
                       </Button>
-                      <Button size="sm" onClick={() => handleDownload(doc as DocumentType)} disabled={downloading === doc.id || isBlocked}>
+                      <Button size="sm" onClick={() => handleDownload(doc as DocumentType)} disabled={downloading === doc.id || isBlocked} className="flex-1">
                         {downloading === doc.id ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : (
@@ -495,7 +495,7 @@ export default function DocumentList() {
       )}
       <div className="space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative w-full sm:flex-grow">
+            <div className="relative w-full">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
                 type="search"
