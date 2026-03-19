@@ -262,51 +262,38 @@ export default function ArchiveManager() {
                                 </p>
                             </CardContent>
                             <CardFooter className="mt-auto">
-                                <TooltipProvider delayDuration={100}>
-                                    <div className="flex w-full items-center justify-end gap-2">
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <Button size="icon" variant="outline" onClick={() => handleUnarchive(doc)}>
-                                                    <ArchiveRestore className="h-4 w-4" />
-                                                    <span className="sr-only">Unarchive</span>
-                                                </Button>
-                                            </TooltipTrigger>
-                                            <TooltipContent><p>Unarchive</p></TooltipContent>
-                                        </Tooltip>
-                                        
-                                        <AlertDialog>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <AlertDialogTrigger asChild>
-                                                        <Button size="icon" variant="outline" className="text-red-500 border border-red-200 hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-all duration-200">
-                                                            <Trash2 className="h-4 w-4" />
-                                                            <span className="sr-only">Delete</span>
-                                                        </Button>
-                                                    </AlertDialogTrigger>
-                                                </TooltipTrigger>
-                                                <TooltipContent><p>Delete Permanently</p></TooltipContent>
-                                            </Tooltip>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    This action cannot be undone. This will permanently delete the document
-                                                    "{doc.filename}" from storage and records. This is irreversible.
-                                                </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                <AlertDialogAction
-                                                    onClick={() => handleDelete(doc)}
-                                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                                >
-                                                    Delete Permanently
-                                                </AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </div>
-                                </TooltipProvider>
+                                <div className="flex w-full items-center gap-2">
+                                    <Button variant="outline" className="w-full" onClick={() => handleUnarchive(doc)}>
+                                        <ArchiveRestore />
+                                        Unarchive
+                                    </Button>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="destructive" className="w-full">
+                                                <Trash2 />
+                                                Delete Permanently
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                This action cannot be undone. This will permanently delete the document
+                                                "{doc.filename}" from storage and records. This is irreversible.
+                                            </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction
+                                                onClick={() => handleDelete(doc)}
+                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                            >
+                                                Delete Permanently
+                                            </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </div>
                             </CardFooter>
                         </Card>
                     ))}
