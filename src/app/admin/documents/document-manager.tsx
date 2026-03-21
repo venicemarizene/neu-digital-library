@@ -3,11 +3,10 @@ import { useState, useMemo, useRef } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { collection, addDoc, serverTimestamp, deleteDoc, doc as firestoreDoc, Timestamp, updateDoc, increment, getDocs, where, query } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, deleteDoc, doc as firestoreDoc, Timestamp, updateDoc, increment, getDocs, where, query, orderBy } from 'firebase/firestore';
 import { useUser, useFirestore, useCollection } from '@/firebase';
 import { supabase } from '@/lib/supabaseClient';
 import type { Document as DocumentType, AppUser } from '@/lib/types';
-import { orderBy } from 'firebase/firestore';
 import { format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
