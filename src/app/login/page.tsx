@@ -64,7 +64,6 @@ export default function LoginPage() {
         const result = await signInWithPopup(auth, provider);
         const loggedInUser = result.user;
         
-        // ✅ Replace with this:
 if (activeTab === 'admin') {
     if (!loggedInUser.email?.endsWith('@neu.edu.ph')) {
       toast({
